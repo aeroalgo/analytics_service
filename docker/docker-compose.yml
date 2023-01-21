@@ -1,0 +1,38 @@
+version: '3.7'
+
+x-backend-env:
+  &backend-env
+    PSQL_HOST_ANALYTICS: ${PSQL_HOST_ANALYTICS}
+    PSQL_PORT_ANALYTICS: ${PSQL_PORT_ANALYTICS}
+    PSQL_USER_ANALYTICS: ${PSQL_USER_ANALYTICS}
+    PSQL_PASS_ANALYTICS: ${PSQL_PASS_ANALYTICS}
+    PSQL_DB_ANALYTICS: ${PSQL_DB_ANALYTICS}
+    APP_PORT_ANALYTICS: ${APP_PORT_ANALYTICS}
+    PYTHONPATH: /var
+    PSQL_HOST_MAIN: ${PSQL_HOST_MAIN}
+    PSQL_PORT_MAIN: ${PSQL_PORT_MAIN}
+    PSQL_USER_MAIN: ${PSQL_USER_MAIN}
+    PSQL_PASS_MAIN: ${PSQL_PASS_MAIN}
+    PSQL_DB_MAIN: ${PSQL_DB_MAIN}
+
+
+x-backend:
+  &backend
+  build:
+    context: ../../
+    dockerfile: analytics_service/docker/Dockerfile
+  restart: on-failure
+  tty: true
+  volumes:
+    - "../../analytics_service/app:/var/app"
+  environment:
+    <<: *backend-env
+
+
+services:
+
+  # ####################################################################################################################
+  # Веб-сервисы (backend)
+  # ####################################################################################################################
+  backend:
+    <<: *backend

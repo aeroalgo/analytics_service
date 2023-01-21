@@ -1,0 +1,33 @@
+version: '3.7'
+
+services:
+
+  backend:
+    depends_on:
+      - psql-analytics
+    ports:
+      - ${APP_PORT_ANALYTICS}:${APP_PORT_ANALYTICS}
+    networks:
+      - default
+      - postgres
+
+
+  psql-analytics:
+    image: postgres:alpine
+    ports:
+      - "5441:5432"
+    volumes:
+      - "psql_data:/var/lib/postgresql/data"
+    environment:
+      POSTGRES_USER: ${PSQL_USER_ANALYTICS}
+      POSTGRES_PASSWORD: ${PSQL_PASS_ANALYTICS}
+      POSTGRES_DB: ${PSQL_DB_ANALYTICS}
+
+volumes:
+  psql_data: { }
+
+
+networks:
+  postgres:
+    external:
+      name:  main_network
