@@ -23,7 +23,6 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 var = str(BASE_DIR).split("/")
 os.environ['PYTHONPATH'] = "/".join(var[:-1])
 sys.path.append(os.environ['PYTHONPATH'])
-print(os.environ['PYTHONPATH'])
 # Quick-start development settings - unsuitable for production
 # See https://docs.djangoproject.com/en/4.1/howto/deployment/checklist/
 
@@ -47,6 +46,7 @@ INSTALLED_APPS = [
     'django.contrib.messages',
     'django.contrib.staticfiles',
     'app.login.apps.LoginConfig',
+    'app.product_search.apps.ProductSearchConfig',
 ]
 
 MIDDLEWARE = [
@@ -139,8 +139,6 @@ AUTH_PASSWORD_VALIDATORS = [
 #     "reset_password_from_key": "login.forms.SiteResetPasswordKeyForm",
 # }
 
-
-# AUTH_USER_MODEL = "login.UserProfile"
 
 # Internationalization
 # https://docs.djangoproject.com/en/4.1/topics/i18n/
