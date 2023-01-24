@@ -32,7 +32,8 @@ class Command(Bus, BaseCommand):
 
         while True:
             self.bus_channel.basic_qos(prefetch_count=1)
-            self.bus_channel.basic_consume(self.callback, queue=self.QUEUE_TPL['TASKS'].format(ns=self.bus_ns))
+            self.bus_channel.basic_consume(queue=self.QUEUE_TPL['TASKS'].format(ns=self.bus_ns),
+                                           on_message_callback=self.callback)
             try:
                 self.bus_channel.start_consuming()
             except KeyboardInterrupt:

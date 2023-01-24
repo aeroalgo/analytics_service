@@ -139,7 +139,12 @@ AUTH_PASSWORD_VALIDATORS = [
 #     "reset_password": "login.forms.SiteResetPasswordForm",
 #     "reset_password_from_key": "login.forms.SiteResetPasswordKeyForm",
 # }
-
+RABBITMQ = {
+    "HOSTS": os.environ.get("RABBITMQ_HOSTS"),
+    "USER": os.environ.get("RABBITMQ_USER"),
+    "PASSWORD": os.environ.get("RABBITMQ_PASS"),
+    "VHOST": os.environ.get("RABBITMQ_VHOST", "/"),
+}
 
 # Internationalization
 # https://docs.djangoproject.com/en/4.1/topics/i18n/

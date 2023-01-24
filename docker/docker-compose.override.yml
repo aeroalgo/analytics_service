@@ -11,6 +11,25 @@ services:
       - default
       - postgres
 
+  rabbitmq:
+    image: 'bitnami/rabbitmq:latest'
+    ports:
+      - "5672:5672"
+      - "15672:15672"
+    volumes:
+      - 'rabbitmqstats_data:/bitnami'
+    environment:
+      RABBITMQ_HOSTS: ${RABBITMQ_HOSTS}
+      RABBITMQ_DEFAULT_USER: ${MQ_USER}
+      RABBITMQ_DEFAULT_PASS: ${MQ_PASS}
+      RABBITMQ_DEFAULT_VHOST: ${MQ_VHOST}
+
+  redis:
+    image: redis:alpine
+    ports:
+      - "6380:6379"
+    volumes:
+      - "redis_data:/var/lib/redis"
 
   psql-analytics:
     image: postgres:alpine
@@ -25,9 +44,11 @@ services:
 
 volumes:
   psql_data: { }
+  rabbitmqstats_data: { }
+  redis_data: { }
 
 
 networks:
   postgres:
     external:
-      name:  main_network
+      name: main_network

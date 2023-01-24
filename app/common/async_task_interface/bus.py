@@ -156,10 +156,8 @@ class Bus:
         @return:
         """
         connect_parameters = self._get_connect_parameters()
-
         self._connection: BlockingConnection = pika.BlockingConnection(random.choice(connect_parameters))
         self._channel: BlockingChannel = self._connection.channel()
-
         self._declare()
 
     def _declare(self):
@@ -206,6 +204,7 @@ class Bus:
         @return:
         """
         parameters = []
+        print(settings.RABBITMQ['USER'], settings.RABBITMQ['PASSWORD'])
         credentials = pika.PlainCredentials(settings.RABBITMQ['USER'], settings.RABBITMQ['PASSWORD'])
         for host in settings.RABBITMQ['HOSTS'].split(','):
             parameters.append(pika.ConnectionParameters(
