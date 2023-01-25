@@ -8,8 +8,6 @@ class SearchProduct(TemplateView):
     template_name = "index.html"
 
     def get(self, request):
-        task = GeneratePollReport()
-        task.publish()
         # if request.user.id == id or request.user.has_perm("permissions.users.index"):
         #     profile_data = UserProfile.profile_information(id=id)
         return render(request, self.template_name)
