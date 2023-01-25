@@ -18,8 +18,9 @@ class AsyncTask(Bus):
     Что-бы создать асинхронную задачу нужно
     - определить класс и наследоваться от AsyncTask
     - определить конструктор если нужно, вызвав в начале super.__init__(*args, **kwargs)
-    - задать в статическом свойстве класса task_data_props свойства класса,
-        которые будут упакованы для передачи по шине данных
+    - передать в конструкторе класса param super().__init__(param={
+            "value": self.value,
+        })
     - реализовать два обязательных метода process(), finalize()
 
     Класс AsyncTask имеет некоторые базовые свойства
@@ -32,12 +33,10 @@ class AsyncTask(Bus):
         что задача retryable и имеет одну из стратегий интервалов указанных в Bus.RETRY_LOGIC_*
     - task_once делает задачу выполняемой единоразово, только последняя задача с task_class и @task_data будет
         выполнена, остальные более старые будут пропущены (ack)
-
     из этих свойств, вот эти task_delay, task_retry_logic, task_once передаются как аргументы при создании
         инстанса задачи перед ее публикацией
 
     """
-    task_data_props = []
 
     def __init__(self, *args, **kwargs):
         self.task_module = self.__class__.__module__
@@ -101,7 +100,6 @@ class AsyncTask(Bus):
         # Формируем тело сообщения, задачу пакуем следующим образом
         # - task это fullyqualified class name задачи
         # - task_id это уникальный идентификатор задачи
-        # - task_data это словарь собранный из свойств класса указаных в task_data_props
         body = {
             'task_class': self.task_class,
             'task_module': self.task_module,
