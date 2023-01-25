@@ -177,7 +177,6 @@ class Bus:
         await queue.bind(exchanges.get(exchange_retryable_tasks))
 
         # Объявления очередей для работы с задежками, повторами
-        # https://github.com/alphasights/sneakers_handlers/blob/1c61e9e855da571a670a24140211093cc01a9120/lib/sneakers_handlers/exponential_backoff_handler.rb
         for duration in self.DURATIONS:
             await channel.declare_queue(
                 name=self.QUEUE_TPL['DELAY_TASKS'].format(ns=self.bus_ns, duration=duration),
