@@ -4,13 +4,14 @@ import logging
 import random
 import sys
 import uuid
-
+import asyncio
+import aio_pika
 import pika
 from django.conf import settings
 from django.core.cache import cache
 from pika import BlockingConnection
+
 from app.common.logger.logg import logger
-from pika.adapters.blocking_connection import BlockingChannel
 
 
 class Bus:
@@ -136,11 +137,8 @@ class Bus:
             self._connect()
         return self._connection
 
-    @property
-    def bus_channel(self) -> BlockingChannel:
-        if self._channel is None or self._channel.is_closed:
-            self._connect()
-        return self._channel
+    def open_channel(self, msg):
+        asyncio.run(self._connect(msg))
 
     @property
     def bus_ns(self):
@@ -149,37 +147,40 @@ class Bus:
     def close_mq(self):
         self._connection.close()
 
-    def _connect(self):
+    async def _connect(self, msg):
         """
         Установка соединения с RabbitMQ и инициализация exchanges, queues
 
         @return:
         """
-        connect_parameters = self._get_connect_parameters()
-        self._connection: BlockingConnection = pika.BlockingConnection(random.choice(connect_parameters))
-        self._channel: BlockingChannel = self._connection.channel()
-        self._declare()
+        connection = await aio_pika.connect(url=settings.RABBITMQ_URL)
+        async with connection:
+            # Creating channel
+            channel = await connection.channel()
+            exchange = await self._declare(channel=channel, msg=msg)
+            await exchange.publish(aio_pika.Message(msg.get('body')), routing_key=msg.get('routing_key'))
 
-    def _declare(self):
+    async def _declare(self, channel, msg):
         # Объявление точек обмена (exchanges)
         exchange_tasks = self.EXCHANGE_TPL['TASKS'].format(ns=self.bus_ns)
         exchange_retryable_tasks = self.EXCHANGE_TPL['RETRYABLE_TASKS'].format(ns=self.bus_ns)
-
-        self._channel.exchange_declare(exchange=exchange_tasks, durable=True, auto_delete=False)
-        self._channel.exchange_declare(exchange=exchange_retryable_tasks, durable=True, auto_delete=False)
-
+        exchanges = {
+            exchange_tasks: await channel.declare_exchange(name=exchange_tasks, durable=True, auto_delete=False),
+            exchange_retryable_tasks: await channel.declare_exchange(name=exchange_retryable_tasks, durable=True,
+                                                                     auto_delete=False)
+        }
         # Объявление очереди для обработки задач
         queue_tasks = self.QUEUE_TPL['TASKS'].format(ns=self.bus_ns)
 
-        self._channel.queue_declare(queue=queue_tasks, durable=True)
-        self._channel.queue_bind(queue_tasks, exchange_tasks)
-        self._channel.queue_bind(queue_tasks, exchange_retryable_tasks)
+        queue = await channel.declare_queue(name=queue_tasks, durable=True)
+        await queue.bind(exchanges.get(exchange_tasks))
+        await queue.bind(exchanges.get(exchange_retryable_tasks))
 
         # Объявления очередей для работы с задежками, повторами
         # https://github.com/alphasights/sneakers_handlers/blob/1c61e9e855da571a670a24140211093cc01a9120/lib/sneakers_handlers/exponential_backoff_handler.rb
         for duration in self.DURATIONS:
-            self._channel.queue_declare(
-                queue=self.QUEUE_TPL['DELAY_TASKS'].format(ns=self.bus_ns, duration=duration),
+            await channel.declare_queue(
+                name=self.QUEUE_TPL['DELAY_TASKS'].format(ns=self.bus_ns, duration=duration),
                 durable=True,
                 arguments={
                     'x-message-ttl': duration * 1000,
@@ -188,8 +189,8 @@ class Bus:
                 },
             )
 
-            self._channel.queue_declare(
-                queue=self.QUEUE_TPL['RETRY_TASKS'].format(ns=self.bus_ns, duration=duration),
+            await channel.declare_queue(
+                name=self.QUEUE_TPL['RETRY_TASKS'].format(ns=self.bus_ns, duration=duration),
                 durable=True,
                 arguments={
                     'x-message-ttl': duration * 1000,
@@ -198,22 +199,4 @@ class Bus:
                 },
             )
 
-    def _get_connect_parameters(self):
-        """
-        Получение параметров подключения к RabbitMQ
-        @return:
-        """
-        parameters = []
-        print(settings.RABBITMQ['USER'], settings.RABBITMQ['PASSWORD'])
-        credentials = pika.PlainCredentials(settings.RABBITMQ['USER'], settings.RABBITMQ['PASSWORD'])
-        for host in settings.RABBITMQ['HOSTS'].split(','):
-            parameters.append(pika.ConnectionParameters(
-                host=host.strip(),
-                virtual_host=settings.RABBITMQ['VHOST'],
-                connection_attempts=5,
-                retry_delay=1,
-                credentials=credentials,
-                heartbeat=300,
-                blocked_connection_timeout=300
-            ))
-        return parameters
+        return exchanges.get(msg.get("exchange"))

@@ -1,3 +1,4 @@
+
 def method_cache_key(cache_prefix="cache", method="unknown", **kwargs):
     # не использовать inspect.stack()[1][3] – это очень медленно!
     sign_string = [cache_prefix, method]

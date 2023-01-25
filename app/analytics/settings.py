@@ -145,6 +145,7 @@ RABBITMQ = {
     "PASSWORD": os.environ.get("RABBITMQ_PASS"),
     "VHOST": os.environ.get("RABBITMQ_VHOST", "/"),
 }
+RABBITMQ_URL = "amqp://analytics:analytics@rabbitmq:5672//analytics"
 
 # Internationalization
 # https://docs.djangoproject.com/en/4.1/topics/i18n/
