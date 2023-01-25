@@ -15,18 +15,15 @@ class ProcessAsyncTask:
             'parameters': {**kwargs}
         }
 
-    @abstractmethod
-    def run(self):
-        """Запуск publish asyncio.run()"""
 
     @abstractmethod
     async def publish(self):
-        """Оповещение о начале парсинга и импорт в процессорный пул задач"""
+        """ Оповещение о начале и отправка в очередь """
 
     @abstractmethod
     def process(self):
-        """ Настройка headers и первоначальных куки """
+        """ Выполнение асинхронной задачи """
 
     @abstractmethod
     async def finalize(self):
-        """Оповещение об окончании парсинга"""
+        """ Оповещение об окончании """
