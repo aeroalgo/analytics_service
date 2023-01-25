@@ -131,21 +131,12 @@ class Bus:
 
         return self.QUEUE_TPL['RETRY_TASKS'].format(ns=self.bus_ns, duration=interval_value)
 
-    @property
-    def bus_connection(self) -> BlockingConnection:
-        if self._connection is None or self._connection.is_closed:
-            self._connect()
-        return self._connection
-
     def open_channel(self, msg):
         asyncio.run(self._connect(msg))
 
     @property
     def bus_ns(self):
         return settings.RABBITMQ['USER']
-
-    def close_mq(self):
-        self._connection.close()
 
     async def _connect(self, msg):
         """
