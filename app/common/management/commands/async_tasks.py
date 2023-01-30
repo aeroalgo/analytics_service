@@ -19,10 +19,11 @@ from app.common.async_task_interface.tasks import AsyncTask
 class Process:
     def __init__(self, message):
         self.message = message
-        self.errors = 'err'
+        self.errors = None
         self.start()
 
     def start(self):
+        self.errors = 'err'
         task = getattr(importlib.import_module(self.message.get('task_module')), self.message.get('task_class'))
         instance = task(**self.message.get('task_data'))
         instance.process()

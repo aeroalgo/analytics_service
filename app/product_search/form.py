@@ -1,0 +1,103 @@
+from django import forms
+from django.forms import formset_factory
+
+from app.product_search.models import ProductProperty
+
+
+class AddSku(forms.Form):
+    prefix = 'sku'
+    my_default_errors = {
+        'required': "Это поле обязательно",
+        'invalid': "Введите корректный/корректные sku"
+    }
+    sku = forms.CharField(
+        label='', widget=forms.TextInput({
+            "placeholder": "sku",
+            "type": "text",
+            "class": "form-control form-control-lg",
+            "equired id": "add_sku"
+        }),
+        error_messages=my_default_errors, required=False
+    )
+
+
+class SelectMP(forms.Form):
+    prefix = 'mp'
+    market = forms.IntegerField(
+        label='', widget=forms.Select({
+            "placeholder": "MP",
+            "class": "form-control form-control-lg",
+            "id": "exampleFormControlSelect1"
+        }, choices=ProductProperty.MARKETS)
+    )
+
+
+class EditingPropertyProduct(forms.Form):
+    prefix = 'editing'
+    my_default_errors = {
+        'required': "Это поле обязательно",
+        'invalid': "Введите корректный/корректные sku"
+    }
+    sku = forms.CharField(
+        label='', widget=forms.TextInput({
+            "placeholder": "sku",
+            "type": "text",
+            "class": "form-control form-control-lg",
+            "equired id": "editing_sku",
+            'readonly': 'readonly'
+        }, ),
+        error_messages=my_default_errors
+    )
+    market = forms.CharField(
+        label='', widget=forms.TextInput({
+            "placeholder": "MP",
+            "type": "text",
+            "class": "form-control form-control-lg",
+            "id": "exampleFormControlSelect1",
+            'readonly': 'readonly'
+        })
+    )
+
+    competition = forms.IntegerField(
+        label='', widget=forms.Select({
+            "placeholder": "Тип конкуренции",
+            "class": "form-control form-control-lg",
+            "id": "exampleFormControlSelect1"
+        }, choices=ProductProperty.COMPETITIONS)
+    )
+
+
+class ReadonlyPropertyProduct(forms.Form):
+    prefix = 'read_only'
+    my_default_errors = {
+        'required': "Это поле обязательно",
+        'invalid': "Введите корректный/корректные sku"
+    }
+    sku = forms.CharField(
+        label='', widget=forms.TextInput({
+            "placeholder": "sku",
+            "type": "text",
+            "class": "form-control form-control-lg",
+            "equired id": "editing_sku",
+            'readonly': 'readonly'
+        }, ),
+        error_messages=my_default_errors
+    )
+    market = forms.CharField(
+        label='', widget=forms.TextInput({
+            "placeholder": "MP",
+            "type": "text",
+            "class": "form-control form-control-lg",
+            "id": "exampleFormControlSelect1",
+            'readonly': 'readonly'
+        })
+    )
+
+    competition = forms.CharField(
+        label='', widget=forms.TextInput({
+            "placeholder": "Тип конкуренции",
+            "class": "form-control form-control-lg",
+            "id": "exampleFormControlSelect1",
+            'readonly': 'readonly'
+        })
+    )
