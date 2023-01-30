@@ -41,10 +41,11 @@ class GetSku(Pool):
         self.extract_data_class = self.extract_data_classes.get(self.mp)
 
         self.max_rate = 10
-        super().__init__(max_rate=self.max_rate, extract_data_class=self.extract_data_class, param={
-            "skus": self.skus,
-            "mp": self.mp
-        })
+        super().__init__(max_rate=self.max_rate, extract_data_class=self.extract_data_class,
+                         param={
+                             "skus": self.skus,
+                             "mp": self.mp
+                         })
 
     def process(self):
         for sku in self.skus:
@@ -58,6 +59,7 @@ class GetSku(Pool):
                 "payload": self.PAYLOADS.get(self.mp).format(sku=sku)
             })
         self.create_first_tasks()
+        return True
 
     def get_item_sku(self):
         pass

@@ -4,14 +4,14 @@ import json
 import logging
 import threading
 import traceback
-from concurrent.futures import ProcessPoolExecutor
-from queue import Queue
 import aio_pika
+from queue import Queue
 from django.conf import settings
 from django.core.cache import cache
 from app.common.logger.logg import logger
 from app.common.utils import method_cache_key
 from django.core.management import BaseCommand
+from concurrent.futures import ProcessPoolExecutor
 from app.common.async_task_interface.bus import Bus
 from app.common.async_task_interface.tasks import AsyncTask
 
@@ -19,14 +19,33 @@ from app.common.async_task_interface.tasks import AsyncTask
 class Process:
     def __init__(self, message):
         self.message = message
-        self.errors = None
+        self.result = None
         self.start()
 
     def start(self):
-        self.errors = 'err'
-        task = getattr(importlib.import_module(self.message.get('task_module')), self.message.get('task_class'))
-        instance = task(**self.message.get('task_data'))
-        instance.process()
+        try:
+            task = getattr(importlib.import_module(self.message.get('task_module')), self.message.get('task_class'))
+            instance = task(**self.message.get('task_data'))
+            self.result = instance.process()
+
+            if not self.result:
+
+                # Если нет логики повторов, то считаем что произошла ошибка
+                if task.task_retry_logic is None:
+
+                    self.result = {'_exception': 'Неизвестная ошибка', '_traceback': []}
+
+                # Иначе если есть логика повторов, делаем повтор задачи в соответствии с ней и если повторы закончились,
+                # финализируем задачу и возвращаем ошибку
+                elif not task.publish(retry=True):
+
+                    # достигнут лимит повторений – финазилируем задачу
+                    task.finalize()
+                    self.result = {'_exception': 'Достигнут лимит повторений задачи', '_traceback': []}
+
+        except Exception as e:
+            logger.exception(e)
+            self.result = {'_exception': e.__str__(), '_traceback': traceback.format_exc()}
 
 
 class Command(BaseCommand, Bus):
@@ -65,16 +84,6 @@ class Command(BaseCommand, Bus):
                                 except BaseException as e:
                                     logger.warning('parse json payload error: %s', e)
                                     task_payload = {}
-                                task = task_payload.get('task', '')
-                                task_id = task_payload.get('task_id')
-                                task_data = task_payload.get('task_data', {})
-                                task_once_key = task_payload.get('task_once_key', None)
-                                if task_once_key is not None:
-                                    cache_key = method_cache_key(task=task, **task_data)
-                                    if cache.get(cache_key) != task_once_key:
-                                        logger.info('pass task %s by once condition (%s)', task,
-                                                    ', '.join(['%s=%s' % item for item in task_data.items()]))
-                                        break
                                 asyncio.create_task(self.worker_init(task_payload))
                                 if queue.name in message.body.decode():
                                     break
@@ -83,9 +92,42 @@ class Command(BaseCommand, Bus):
             return
 
     async def worker_init(self, message):
+        task = message.get('task', '')
+        task_id = message.get('task_id')
+        task_data = message.get('task_data', {})
+        task_once_key = message.get('task_once_key', None)
+        if task_once_key is not None:
+            cache_key = method_cache_key(task=task, **task_data)
+            if cache.get(cache_key) != task_once_key:
+                logger.info('pass task %s by once condition (%s)', task,
+                            ', '.join(['%s=%s' % item for item in task_data.items()]))
+                return
         with ProcessPoolExecutor(max_workers=1) as executor:
             task = await self.loop.run_in_executor(executor, Process, message)
-            print(task.errors)
+            task_model = {
+                'id': task_id,
+                'status': 'ok',
+                'name': task,
+                'data': task_data,
+                'result': None,
+                'error': None
+            }
+            if '_exception' in task.result:
+                logger.warning('task %s got exception: %s' % (task, task.result['_exception']))
+                task_model['status'] = 'error'
+                task_model['error'] = {
+                    'message': task.result.get('_exception'),
+                    'traceback': task.result.get('_traceback', [])
+                }
+            else:
+                task_model['result'] = task.result
+
+            cache_key = method_cache_key(cache_prefix='task', task_id=task_id)
+            cache.set(cache_key, task_model, 3600)
+
+            if task_once_key is not None:
+                cache_key = method_cache_key(task=task, **task_data)
+                cache.delete(cache_key)
 
     # def callback(self, ch, method, properties, body):
     #     """
@@ -214,11 +256,3 @@ class Command(BaseCommand, Bus):
     #     except Exception as e:
     #         logger.exception(e)
     #         return {'_exception': e.__str__(), '_traceback': traceback.format_exc()}
-    #
-    # @staticmethod
-    # def import_task(task_name):
-    #     logger.debug('import task %s', task_name)
-    #     pkg, attr = task_name.rsplit('.', 1)
-    #     logger.debug('pkg %s, module %s', pkg, attr)
-    #     ret = getattr(importlib.import_module(pkg), attr)
-    #     return ret
