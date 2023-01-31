@@ -101,3 +101,14 @@ class ReadonlyPropertyProduct(forms.Form):
             'readonly': 'readonly'
         })
     )
+
+
+class CreateAssemblyForm(forms.Form):
+    prefix = "assembly"
+    name = forms.CharField(
+        label='', widget=forms.TextInput({
+            "placeholder": "Название сборки",
+            "class": "form-control form-control-lg",
+            "id": "exampleFormControlSelect1",
+        })
+    )

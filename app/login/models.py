@@ -6,6 +6,37 @@ from django.contrib.auth.base_user import AbstractBaseUser, BaseUserManager
 
 from app.login.serializers import ProfileSerializer, GroupDirectionSerializer
 
+
+class MyUserManager(BaseUserManager):
+    use_in_migrations = True
+
+    def _create_user(self, login, password, **extra_fields):
+        """
+        Creates and saves a User with the given username, email and password.
+        """
+        login = self.normalize_email(login)
+        user = self.model(login=login, **extra_fields)
+        user.set_password(password)
+        user.save(using=self._db)
+        return user
+
+    def create_user(self, login=None, password=None, **extra_fields):
+        extra_fields.setdefault("is_staff", False)
+        extra_fields.setdefault("is_superuser", False)
+        return self._create_user(login, password, **extra_fields)
+
+    def create_superuser(self, login, password, **extra_fields):
+        extra_fields.setdefault("is_staff", True)
+        extra_fields.setdefault("is_superuser", True)
+
+        if extra_fields.get("is_staff") is not True:
+            raise ValueError("Superuser must have is_staff=True.")
+        if extra_fields.get("is_superuser") is not True:
+            raise ValueError("Superuser must have is_superuser=True.")
+
+        return self._create_user(login, password, **extra_fields)
+
+
 class Direction(models.Model):
     DIRECTION_VTMP = 0
     DIRECTION_GFG = 1
@@ -25,12 +56,8 @@ class Direction(models.Model):
         verbose_name="Ключ направления", blank=False, max_length=255, null=True
     )
 
-    class Meta:
-        managed = False
-        app_label = 'login'
 
-
-class UserProfile(models.Model):
+class UserProfile(AbstractBaseUser, PermissionsMixin):
     login = models.CharField(
         "Логин", max_length=255, blank=False, null=True, unique=True
     )
@@ -51,10 +78,9 @@ class UserProfile(models.Model):
     is_staff = models.BooleanField("Персонал", default=False)
     is_active = models.BooleanField("Активный", default=True)
 
+    objects = MyUserManager()
 
-    class Meta:
-        managed = False
-        app_label = 'login'
+    USERNAME_FIELD = "login"
 
     @staticmethod
     def profile_information(id):

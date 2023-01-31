@@ -1,5 +1,7 @@
 from django.db import models
 
+from app.login.models import UserProfile
+
 
 class Product(models.Model):
     sku = models.CharField(
@@ -30,4 +32,17 @@ class ProductProperty(models.Model):
     )
     competition = models.IntegerField(
         verbose_name="Тип конкуренции", blank=True, choices=COMPETITIONS, null=True
+    )
+
+
+class Assembly(models.Model):
+    skus = models.ManyToManyField(
+        Product, related_name="assembly_sku", verbose_name="Идентификаторы в сборке", blank=True, null=True
+    )
+    name = models.CharField(
+        verbose_name="Название сборки", blank=False, max_length=255, null=True, unique=True
+    )
+
+    user = models.ForeignKey(
+        UserProfile, related_name="assembly_user", blank=True, null=True, on_delete=models.PROTECT
     )

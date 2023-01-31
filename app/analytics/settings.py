@@ -88,7 +88,7 @@ TEMPLATES = [
 ]
 
 WSGI_APPLICATION = 'analytics.wsgi.application'
-DATABASE_ROUTERS = ['login.db_route.AuthRouter']
+# DATABASE_ROUTERS = ['login.db_route.AuthRouter']
 # Database
 # https://docs.djangoproject.com/en/4.1/ref/settings/#databases
 
@@ -128,6 +128,8 @@ AUTH_PASSWORD_VALIDATORS = [
         'NAME': 'django.contrib.auth.password_validation.NumericPasswordValidator',
     },
 ]
+
+AUTH_USER_MODEL = "login.UserProfile"
 
 # AUTHENTICATION_BACKENDS = (
 #     'django.contrib.auth.backends.ModelBackend',

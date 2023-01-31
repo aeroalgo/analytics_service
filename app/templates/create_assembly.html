@@ -211,62 +211,19 @@
                                 <div class="card">
                                     <div class="card-body">
                                         <p class="card-description">
-                                            Введите sku в формате 131605845, для множественного добавления 131605845,
-                                            259485564
+                                            Введите наименование сборки
                                         </p>
                                         <form class="forms-sample" method="post">
                                             {{ csrf_input }}
                                             <div class="form-group">
                                                 <div class="input-group">
-                                                    {{ add_sku_form }}
-                                                    <div class="input-group-append" style="width:33.4%;">
-                                                        {{ select_mp }}
-                                                    </div>
+                                                    {{ create_assembly }}
+<!--                                                    <div class="input-group-append" style="width:33.4%;">-->
+<!--                                                        {{ select_mp }}-->
+<!--                                                    </div>-->
                                                 </div>
                                             </div>
-                                            {% if editing_form %}
-                                            {% for form in editing_form %}
-                                            <div class="form-group">
-                                                <div class="input-group">
-                                                    {% for field in form %}
-                                                    <div class="input-group-append"
-                                                         style="width:33.4%; padding:3px">
-                                                        {{ field }}
-                                                    </div>
-                                                    {% endfor %}
-                                                </div>
-                                            </div>
-                                            {% endfor %}
-                                            {% endif %}
-                                            {% if read_only_form %}
-                                            {% for form in read_only_form %}
-                                            <div class="form-group">
-                                                <div class="input-group">
-                                                    {% for field in form %}
-                                                    <div class="input-group-append"
-                                                         style="width:33.4%; padding:3px">
-                                                        {{ field }}
-                                                    </div>
-                                                    {% endfor %}
-                                                </div>
-                                            </div>
-                                            {% endfor %}
-                                            {% endif %}
-                                            {% if editing_form_one %}
-                                            {% for form in editing_form_one %}
-                                            <div class="form-group">
-                                                <div class="input-group">
-                                                    {% for field in form %}
-                                                    <div class="input-group-append"
-                                                         style="width:33.4%; padding:2px">
-                                                        {{ field }}
-                                                    </div>
-                                                    {% endfor %}
-                                                </div>
-                                            </div>
-                                            {% endfor %}
-                                            {% endif %}
-                                            <button type="submit" class="btn btn-primary me-2">Добавить</button>
+                                            <button type="submit" class="btn btn-primary me-2">Сохранить</button>
                                         </form>
                                     </div>
                                 </div>
