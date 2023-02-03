@@ -3,6 +3,7 @@ import importlib
 import json
 import logging
 import threading
+import time
 import traceback
 import aio_pika
 from queue import Queue
@@ -19,7 +20,7 @@ from app.common.async_task_interface.tasks import AsyncTask
 class Process:
     def __init__(self, message):
         self.message = message
-        self.result = None
+        self.result = {}
         self.start()
 
     def start(self):
@@ -31,16 +32,16 @@ class Process:
             if not self.result:
 
                 # Если нет логики повторов, то считаем что произошла ошибка
-                if task.task_retry_logic is None:
+                if instance.task_retry_logic is None:
 
                     self.result = {'_exception': 'Неизвестная ошибка', '_traceback': []}
 
                 # Иначе если есть логика повторов, делаем повтор задачи в соответствии с ней и если повторы закончились,
                 # финализируем задачу и возвращаем ошибку
-                elif not task.publish(retry=True):
+                elif not instance.publish(retry=True):
 
                     # достигнут лимит повторений – финазилируем задачу
-                    task.finalize()
+                    instance.finalize()
                     self.result = {'_exception': 'Достигнут лимит повторений задачи', '_traceback': []}
 
         except Exception as e:
@@ -61,6 +62,7 @@ class Command(BaseCommand, Bus):
         self._sem = asyncio.Semaphore(self.max_workers)
 
     def handle(self, *args, **kwargs):
+        time.sleep(10)
         logger.info('asynchronous task started')
         self.loop = asyncio.get_event_loop()
         self.loop.create_task(self.connect_consumer())

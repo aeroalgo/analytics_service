@@ -10,7 +10,6 @@ import pika
 from django.conf import settings
 from django.core.cache import cache
 from pika import BlockingConnection
-
 from app.common.logger.logg import logger
 
 

@@ -9,11 +9,9 @@ class ProcessAsyncTask:
 
     def __init__(self, **kwargs):
         self.task_id = str(kwargs.get('task_id', uuid.uuid4()))
-        self.import_message = {
-            'module': self.__class__.__module__,
-            'class_name': self.__class__.__name__,
-            'parameters': {**kwargs}
-        }
+        self.task_delay = kwargs.get('task_delay', None)
+        self.task_retry_logic = kwargs.get('task_retry_logic', None)
+        self.task_once = bool(kwargs.get('task_once', False))
 
 
     @abstractmethod

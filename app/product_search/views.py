@@ -39,10 +39,10 @@ class SearchProduct(TemplateView):
             skus = form_sku.cleaned_data['sku'].split(", ")
             exist_products = Product.objects.filter(sku__in=skus).values_list('sku', flat=True)
             new_skus = [sku for sku in skus if sku not in exist_products]
-            if self.add_new_sku(new_skus=new_skus, form_market=form_market):
-                # x = GetSku(skus=new_skus, mp=form_market.cleaned_data['market'])
-                # x.publish()
-                pass
+            self.add_new_sku(new_skus=new_skus, form_market=form_market)
+            # if self.add_new_sku(new_skus=new_skus, form_market=form_market):
+            x = GetSku(skus=skus, mp=form_market.cleaned_data['market'])
+            x.publish()
             read_only_skus = []
             if request.POST.get('editing-0-sku') or request.POST.get('readonly-0-sku'):
                 idx = 0
@@ -68,22 +68,16 @@ class SearchProduct(TemplateView):
             if 'add_sku_in_assembly' in request.POST:
                 for sku in read_only_skus:
                     Assembly.objects.get(id=id).skus.add(sku)
-            formset_context = {}
-            if len(new_skus) + len(read_only_skus) > 1:
-                editing_form, read_only_form = self.get_formsets(editing=new_skus, read_only=read_only_skus)
-                formset_context = {
-                    "add_sku_form": self.add_sku,
-                    "select_mp": self.select_mp,
-                    "editing_form": editing_form,
-                    "read_only_form": read_only_form
-                }
-            elif len(new_skus) == 1:
-                editing_form, read_only_form = self.get_formsets(editing=new_skus)
-                formset_context = {
-                    "add_sku_form": self.add_sku,
-                    "select_mp": self.select_mp,
-                    "editing_form_one": editing_form or read_only_form,
-                }
+                # Сделать редирект на страницу с таблицами
+            formset_context = {
+                "add_sku_form": self.add_sku,
+                "select_mp": self.select_mp,
+            }
+            editing_form, read_only_form = self.get_formsets(editing=new_skus, read_only=read_only_skus)
+            formset_context.update({
+                "editing_form": editing_form,
+                "read_only_form": read_only_form
+            })
             return render(request, self.template_name, context=formset_context)
 
         else:

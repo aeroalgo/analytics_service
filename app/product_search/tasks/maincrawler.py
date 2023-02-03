@@ -5,6 +5,7 @@ import json
 import signal
 import asyncio
 import aiohttp
+import orjson
 import requests
 import traceback
 from functools import partial
@@ -28,7 +29,8 @@ class Task:
     def __init__(self, url: str, count_call=0, tid: Optional[int] = None, callback: Optional[Callable] = None,
                  cd_kwargs: dict = None, content=False, save_content: bool = False,
                  start_extract: Optional[Callable] = None, executor: Optional[ProcessPoolExecutor] = None,
-                 called_class=None, model=None, headers=None, payload=None, cookies=None):
+                 called_class=None, model=None, headers=None, payload=None, cookies=None, auto_decompress=True,
+                 string_data=None):
         self.count_call = count_call
         self.cookies = cookies
         self.payload = payload
@@ -43,6 +45,8 @@ class Task:
         self.cd_kwargs = cd_kwargs
         self.content = content
         self.save_content = save_content
+        self.auto_decompress = auto_decompress
+        self.string_data = string_data
 
     async def perform(self):
         extract_data = None
@@ -52,6 +56,8 @@ class Task:
             async with aiohttp.ClientSession(timeout=timeout, headers=self.headers) as session:
                 if self.payload:
                     resp = await session.post(url=self.url, json=self.payload)
+                elif self.string_data:
+                    resp = await session.post(url=self.url, data=self.string_data)
                 else:
                     resp = await session.get(url=self.url)
                 self.status = resp.status
@@ -65,12 +71,13 @@ class Task:
                             try:
                                 if self.callback is None:
                                     extract_data = await loop.run_in_executor(
-                                        executor, partial(self.start_extract, json.loads(data), self.headers,
+                                        executor, partial(self.start_extract, orjson.loads(data), self.headers,
                                                           self.cookies))
                                 else:
                                     extract_data = await loop.run_in_executor(
-                                        executor, partial(self.callback, json.loads(data), self.headers,
-                                                          self.cookies, self.payload, self.cd_kwargs))
+                                        executor, partial(self.callback, orjson.loads(data), self.headers,
+                                                          self.cookies, self.payload or self.string_data,
+                                                          self.cd_kwargs))
                             except KeyboardInterrupt:
                                 logger.info("All process close")
                         else:
@@ -232,8 +239,8 @@ class Pool(AsyncTask):
                     await self._queue.join()
                 await self._add_task_queue.wait()
                 self._add_task_queue.clear()
-        await self._queue.join()
-        await self.stop()
+            await self._queue.join()
+            await self.stop()
 
     def create_first_tasks(self):
         try:

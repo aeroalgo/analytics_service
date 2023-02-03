@@ -1,3 +1,5 @@
+import datetime
+
 from django.db import models
 
 from app.login.models import UserProfile
@@ -46,3 +48,34 @@ class Assembly(models.Model):
     user = models.ForeignKey(
         UserProfile, related_name="assembly_user", blank=True, null=True, on_delete=models.PROTECT
     )
+
+
+class PeriodData(models.Model):
+    sku = models.ForeignKey(
+        Product, verbose_name="Артикул", blank=False, related_name="period_sku", on_delete=models.CASCADE
+    )
+    date_start = models.DateField(
+        verbose_name="Дата начала периода", blank=False, default=datetime.datetime.now()
+    )
+    date_end = models.DateField(
+        verbose_name="Дата окончания периода", blank=False, default=datetime.datetime.now()
+    )
+    name_month = models.CharField(
+        verbose_name="Название месяца", blank=False, max_length=255, null=True
+    )
+    lost_profit = models.FloatField(
+        verbose_name="Упущенная выручка", blank=True, null=True
+    )
+    revenue = models.FloatField(
+        verbose_name="Выручка за период", blank=True, null=True
+    )
+    final_price_average = models.FloatField(
+        verbose_name="Средняя цена за период (выручка / число продаж)", blank=True, null=True
+    )
+    sales = models.IntegerField(
+        verbose_name="Количество проданных единиц товара за период", blank=True, null=True
+    )
+
+
+class Last30DaysData(models.Model):
+    pass

@@ -257,21 +257,7 @@
                                             </div>
                                             {% endfor %}
                                             {% endif %}
-                                            {% if editing_form_one %}
-                                            {% for form in editing_form_one %}
-                                            <div class="form-group">
-                                                <div class="input-group">
-                                                    {% for field in form %}
-                                                    <div class="input-group-append"
-                                                         style="width:33.4%; padding:2px">
-                                                        {{ field }}
-                                                    </div>
-                                                    {% endfor %}
-                                                </div>
-                                            </div>
-                                            {% endfor %}
-                                            {% endif %}
-                                            {% if editing_form or editing_form_one or read_only_form %}
+                                            {% if editing_form or read_only_form %}
                                             <button type="submit" name="add_sku_in_assembly"
                                                     class="btn btn-primary me-2">Сохранить
                                             </button>

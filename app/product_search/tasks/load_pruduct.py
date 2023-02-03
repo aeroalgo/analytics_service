@@ -1,14 +1,73 @@
-import datetime
 import time
+import datetime
+from urllib.parse import quote
+
+import orjson
 
 from app.analytics.settings import env
 from app.common.logger.logg import logger
 from app.product_search.models import ProductProperty
-from app.product_search.tasks.maincrawler import Pool, ExtractData
+from app.common.async_task_interface.interface import ProcessAsyncTask
+from app.product_search.tasks.maincrawler import Pool, ExtractData, Task
 
 
 class ParseSkuWB(ExtractData):
+
+    def get_payload(self, sku):
+        # return {"startRow": 0, "endRow": 100,
+        #         "filterModel": {"id": {"filterType": "number", "type": "equals", "filter": sku, "filterTo": None}},
+        #         "sortModel": [{"colId": "revenue", "sort": "desc"}]}
+
+        return '{{"filterModel":' \
+               '{{"id":{{"filterType":"number","type":"equals","filter":{sku},"filterTo":null}}}},' \
+               '"sortModel":[{{"colId":"revenue","sort":"desc"}}]}}'.format(sku=sku)
+
+    def get_date(self, delta: int):
+        d2 = datetime.datetime.now() - - datetime.timedelta(days=1)
+        d2 = d2.date()
+        d1 = d2 - datetime.timedelta(days=delta)
+        return d1, d2
+
     def start_extract(self, response, headers, cookie):
+        next_tasks = []
+        d1, d2 = self.get_date(delta=1)
+        NEXT_URL = 'https://mpstats.io/api/wb/get/brand?d1={d1}&d2={d2}&path={item_brand}'
+        logger.info(response)
+        item = response.get('item')
+        item_brand = item.get('brand')
+        item_id = item.get('id')
+        cd_kwargs = {
+            "item_id": item_id
+        }
+        payload = orjson.loads(self.get_payload(cd_kwargs.get("item_id")))
+        next_tasks.append(Task(url=NEXT_URL.format(d1=d1, d2=d2, item_brand=item_brand),
+                               headers=headers.copy(), callback=self.get_category,
+                               string_data=payload, cd_kwargs=cd_kwargs))
+        return next_tasks
+
+    def get_category(self, response, headers, cookie, payload, cd_kwargs):
+        next_tasks = []
+        d1, d2 = self.get_date(delta=10)
+        NEXT_URL = "http://mpstats.io/api/wb/get/category?d1={d1}&d2={d2}&path={quote}"
+        data = response.get("data")
+
+        item_category = ''
+        for item in data:
+            item_category = item.get("category")
+            if item_category:
+                break
+
+        logger.info(cd_kwargs)
+        logger.info(NEXT_URL.format(d1=d1, d2=d2, quote=quote(item_category)))
+        payload = orjson.loads(self.get_payload(cd_kwargs.get("item_id")))
+
+        next_tasks.append(Task(url=NEXT_URL.format(d1=d1, d2=d2, quote=quote(item_category)),
+                               headers=headers.copy(), callback=self.get_category_data,
+                               string_data=payload))
+        return next_tasks
+
+    def get_category_data(self, response, headers, cookie, payload, cd_kwargs):
+        logger.info(payload)
         logger.info(response)
 
 
@@ -19,16 +78,12 @@ class ParseSkuOzon(ExtractData):
 
 class GetSku(Pool):
     GET_ITEM_SKU = {
-        ProductProperty.MP_WB: "http://mpstats.io/api/wb/get/category?d1={d1}&d2={d2}&path=%D0%96%D0%B5%D0%BD%D1%89%D0%B8%D0%BD%D0%B0%D0%BC/%D0%9E%D0%B4%D0%B5%D0%B6%D0%B4%D0%B0"
+        ProductProperty.MP_WB: "https://mpstats.io/api/wb/get/item/{sku}",
+        ProductProperty.MP_OZON: "https://mpstats.io/api/oz/get/item/{sku}"
     }
     HEADERS = {
         "X-Mpstats-TOKEN": f"{env('MP_STATS_TOKEN')}",
         "Content-Type": "application/json"
-    }
-    PAYLOADS = {
-        ProductProperty.MP_WB: """{{"startRow":0,"endRow":100,"filterModel":{{"id":
-        {{"filterType":"number","type":"equals","filter":{sku},"filterTo":null}},
-        "sortModel":[{{"colId":"revenue","sort":"desc"}}]}}"""
     }
 
     def __init__(self, *args, **kwargs):
@@ -49,20 +104,13 @@ class GetSku(Pool):
 
     def process(self):
         for sku in self.skus:
-            d1 = datetime.datetime.now() - datetime.timedelta(weeks=4)
-            d1 = d1.date()
-            d2 = datetime.datetime.now()
-            d2 = d2.date()
             self.start_url.append({
-                'url': self.GET_ITEM_SKU.get(self.mp).format(d1=d1, d2=d2),
+                'url': self.GET_ITEM_SKU.get(self.mp).format(sku=sku),
                 'headers': self.HEADERS,
-                "payload": self.PAYLOADS.get(self.mp).format(sku=sku)
+                # "payload": self.PAYLOADS.get(self.mp).format(sku=sku)
             })
         self.create_first_tasks()
-        return True
-
-    def get_item_sku(self):
-        pass
+        return {"status": "ok"}
 
     def finalize(self):
         return True
