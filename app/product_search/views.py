@@ -1,5 +1,6 @@
 from typing import List
-
+from dateutil.rrule import rrule, MONTHLY
+import datetime
 from django.shortcuts import render
 from django.forms import formset_factory
 from django.http import HttpResponseRedirect
@@ -18,6 +19,11 @@ class SearchProduct(TemplateView):
 
     def get(self, request, id):
         try:
+            start_date = datetime.datetime.now().date() - datetime.timedelta(weeks=52)
+            day_delta = start_date.day
+            start_date = start_date - datetime.timedelta(days=day_delta - 1)
+            print(start_date)
+            print(list(rrule(freq=MONTHLY, count=12, dtstart=start_date)))
             exist_skus = Assembly.objects.get(id=id).skus.all()
             editing_form, read_only_form = self.get_formsets(editing=exist_skus)
             formset_context = {
