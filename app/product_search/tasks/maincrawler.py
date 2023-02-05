@@ -52,7 +52,7 @@ class Task:
         extract_data = None
         status = None
         try:
-            timeout = ClientTimeout(total=60)
+            timeout = ClientTimeout(total=120)
             async with aiohttp.ClientSession(timeout=timeout, headers=self.headers) as session:
                 if self.payload:
                     resp = await session.post(url=self.url, json=self.payload)
@@ -169,7 +169,6 @@ class Pool(AsyncTask):
 
     async def _scheduler(self):
         count = 1
-        count_no_task = 0
         while self.is_running:
             for _ in range(self.max_rate):
                 # print('Queue size', self._queue.qsize())
@@ -184,10 +183,7 @@ class Pool(AsyncTask):
                         count += 1
                     await asyncio.sleep(0)
                 else:
-                    count_no_task += 1
-                    await asyncio.sleep(1)
-            if count_no_task == 120:
-                await self.stop()
+                    await asyncio.sleep(0.1)
 
     async def _worker(self, task: Task):
         async with self._sem:
@@ -219,6 +215,7 @@ class Pool(AsyncTask):
         self._scheduler_task.cancel()
         if self._concurrent_workers != 0:
             await self._stop_event.wait()
+        logger.info(f'Stoping {self.__class__.__name__}')
 
     def start(self):
         self.is_running = True
@@ -239,7 +236,9 @@ class Pool(AsyncTask):
                     await self._queue.join()
                 await self._add_task_queue.wait()
                 self._add_task_queue.clear()
-            await self._queue.join()
+            for i in range(60):
+                await self._queue.join()
+                await asyncio.sleep(1)
             await self.stop()
 
     def create_first_tasks(self):

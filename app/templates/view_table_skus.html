@@ -218,11 +218,11 @@
                                             <th>Артикул</th>
                                             <th>Выручка<br>за посл 30 дней</th>
                                             <th>Средняя цена<br>за посл 30 дней</th>
-                                            <th>Валовая прибыль</th>
+                                            <th>Валовая<br>прибыль</th>
                                             <th>Средняя позиция<br>в выдаче</th>
-                                            <th>Дата первого появления</th>
-                                            <th>Стартовая цена продажи</th>
-                                            <th>Количество продаж</th>
+                                            <th>Дата<br>первого появления</th>
+                                            <th>Стартовая<br>цена продажи</th>
+                                            <th>Количество<br>продаж</th>
                                             <th>Рейтинг</th>
                                             <th>Комментариев</th>
                                         </tr>
@@ -300,7 +300,6 @@
                                                     {% endfor %}
                                                     {% endfor %}
                                                 </tr>
-
                                                 {% endfor %}
                                                 </tbody>
                                             </table>
@@ -333,13 +332,14 @@
                                                 </thead>
                                                 <tbody>
                                                 {% for item in quarter_data.get(2) %}
-                                                {% for data in item %}
+
                                                 <tr>
+                                                    {% for data in item %}
                                                     {% for key, value in data.items() %}
                                                     <td>{{ value }}</td>
                                                     {% endfor %}
+                                                    {% endfor %}
                                                 </tr>
-                                                {% endfor %}
                                                 {% endfor %}
                                                 </tbody>
                                             </table>
@@ -372,13 +372,13 @@
                                                 </thead>
                                                 <tbody>
                                                 {% for item in quarter_data.get(3) %}
-                                                {% for data in item %}
                                                 <tr>
-                                                    {% for key, value in data.items() %}
-                                                    <td>{{ value }}</td>
+                                                    {% for data in item %}
+                                                    {% for key, value1 in data.items() %}
+                                                    <td>{{ value1 }}</td>
+                                                    {% endfor %}
                                                     {% endfor %}
                                                 </tr>
-                                                {% endfor %}
                                                 {% endfor %}
                                                 </tbody>
                                             </table>
@@ -419,7 +419,6 @@
                                                     {% endfor %}
                                                     {% endfor %}
                                                 </tr>
-
                                                 {% endfor %}
                                                 </tbody>
                                             </table>
@@ -449,8 +448,9 @@
         </div>
         <!-- main-panel ends -->
     </div>
-    <!-- page-body-wrapper ends -->
-    {% include "scripts.html" %}
+</div>
+<!-- page-body-wrapper ends -->
+{% include "scripts.html" %}
 </body>
 
 </html>

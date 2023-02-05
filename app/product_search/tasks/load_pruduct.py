@@ -4,49 +4,18 @@ from urllib.parse import quote
 from app.analytics.settings import env
 from app.common.logger.logg import logger
 from dateutil.rrule import rrule, MONTHLY
-from app.product_search.models import ProductProperty, Product, PeriodData, Last30DaysData, Categories
+from app.product_search.tasks.mixins import ParseSkuMixin
 from app.common.async_task_interface.interface import ProcessAsyncTask
 from app.product_search.tasks.maincrawler import Pool, ExtractData, Task
+from app.product_search.models import ProductProperty, Product, PeriodData, Last30DaysData, Categories
 
 
-class ParseSkuWB(ExtractData):
+class ParseSkuWB(ExtractData, ParseSkuMixin):
 
     def get_payload(self, sku):
         return {"startRow": 0, "endRow": 100,
                 "filterModel": {"id": {"filterType": "number", "type": "equals", "filter": sku, "filterTo": None}},
                 "sortModel": [{"colId": "revenue", "sort": "desc"}]}
-
-    def get_date(self, delta: int):
-        d2 = datetime.datetime.now() - datetime.timedelta(days=1)
-        d2 = d2.date()
-        d1 = d2 - datetime.timedelta(days=delta)
-        return d1, d2
-
-    def get_period_date(self, first_date):
-        dates = []
-        first_date = datetime.datetime.strptime(first_date, '%Y-%m-%d').date()
-
-        now = datetime.datetime.now().date()
-        now = now - datetime.timedelta(days=now.day - 1)
-
-        start_date = datetime.datetime.now().date() - datetime.timedelta(weeks=52)
-        if first_date < start_date:
-            day_delta = start_date.day
-            start_date = start_date - datetime.timedelta(days=day_delta - 1)
-        else:
-            day_delta = first_date.day
-            start_date = first_date - datetime.timedelta(days=day_delta - 1)
-        freq_date = list(rrule(freq=MONTHLY, count=13, dtstart=start_date))
-
-        for idx, date in enumerate(freq_date):
-            if date == datetime.datetime.strptime(str(now), '%Y-%m-%d'):
-                break
-            if idx + 1 != len(freq_date):
-                dates.append({
-                    "d1": freq_date[idx].date(),
-                    "d2": freq_date[idx + 1].date()
-                })
-        return dates
 
     def start_extract(self, response, headers, cookie):
         next_tasks = []
@@ -60,6 +29,19 @@ class ParseSkuWB(ExtractData):
         payload = self.get_payload(item_id)
         product = Product.objects.get(sku=item_id)
         exist_date = list(PeriodData.objects.filter(sku_id=product.id).values_list('date_start', flat=True))
+        now = datetime.datetime.now().date()
+        data = Last30DaysData.objects.filter(sku_id=product.id, date_update=now)
+        d1, d2 = self.get_date(delta=30)
+
+        if not data:
+            cd_kwargs = {
+                "item_id": item_id,
+                "d1": d1,
+                "d2": d2
+            }
+            next_tasks.append(Task(url=NEXT_URL.format(d1=d1, d2=d2, item_brand=quote(item_brand)),
+                                   headers=headers.copy(), callback=self.get_brand_data_30days,
+                                   payload=payload, cd_kwargs=cd_kwargs.copy()))
         for date in dates:
             if date["d1"] not in exist_date:
                 cd_kwargs = {
@@ -68,27 +50,16 @@ class ParseSkuWB(ExtractData):
                     "d2": date["d2"]
                 }
 
-                next_tasks.append(Task(url=NEXT_URL.format(d1=date["d1"], d2=date["d2"], item_brand=item_brand),
+                next_tasks.append(Task(url=NEXT_URL.format(d1=date["d1"], d2=date["d2"], item_brand=quote(item_brand)),
                                        headers=headers.copy(), callback=self.get_brand_data_period,
                                        payload=payload, cd_kwargs=cd_kwargs.copy()))
 
-        d1, d2 = self.get_date(delta=30)
-        cd_kwargs = {
-            "item_id": item_id,
-            "d1": d1,
-            "d2": d2
-        }
-        now = datetime.datetime.now().date()
-        data = Last30DaysData.objects.filter(sku_id=product.id, date_update=now)
-        if not data:
-            next_tasks.append(Task(url=NEXT_URL.format(d1=d1, d2=d2, item_brand=item_brand),
-                                   headers=headers.copy(), callback=self.get_brand_data_30days,
-                                   payload=payload, cd_kwargs=cd_kwargs.copy()))
         return next_tasks
 
     def get_brand_data_30days(self, response, headers, cookie, payload, cd_kwargs):
         next_tasks = []
         NEXT_URL = "https://mpstats.io/api/wb/get/item/{sku}/by_category?d1={d1}&d2={d2}"
+        logger.info(response)
         item = response.get("data")[0]
         source, _ = Categories.objects.get_or_create(name=item.get("category"))
         product = Product.objects.get(sku=cd_kwargs.get("item_id"))
@@ -119,6 +90,7 @@ class ParseSkuWB(ExtractData):
         pass
 
     def get_brand_data_period(self, response, headers, cookie, payload, cd_kwargs):
+        logger.info(response)
         item = response.get("data")[0]
         source, _ = Categories.objects.get_or_create(name=item.get("category"))
         product = Product.objects.get(sku=cd_kwargs.get("item_id"))

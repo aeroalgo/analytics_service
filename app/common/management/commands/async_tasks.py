@@ -62,7 +62,7 @@ class Command(BaseCommand, Bus):
         self._sem = asyncio.Semaphore(self.max_workers)
 
     def handle(self, *args, **kwargs):
-        time.sleep(10)
+        time.sleep(20)
         logger.info('asynchronous task started')
         self.loop = asyncio.get_event_loop()
         self.loop.create_task(self.connect_consumer())

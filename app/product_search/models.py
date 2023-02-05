@@ -15,8 +15,8 @@ class ProductProperty(models.Model):
     MP_WB = 1
     MP_OZON = 2
     MARKETS = (
-        (MP_WB, "Wildberries"),
-        (MP_OZON, "Ozon"),
+        (MP_WB, "WB"),
+        (MP_OZON, "OZ"),
     )
 
     COMPETITION_STRAIGHT = 1

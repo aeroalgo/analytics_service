@@ -41,11 +41,10 @@ class SearchProduct(TemplateView):
         if form_sku.is_valid() and form_market.is_valid():
             skus = form_sku.cleaned_data['sku'].split(", ")
             exist_products = Product.objects.filter(sku__in=skus).values_list('sku', flat=True)
-            new_skus = [sku for sku in skus if sku not in exist_products]
+            new_skus = [sku for sku in skus if sku not in exist_products and sku != '']
             if self.add_new_sku(new_skus=new_skus, form_market=form_market):
-                pass
-            x = GetSku(skus=skus, mp=form_market.cleaned_data['market'])
-            x.publish()
+                x = GetSku(skus=skus, mp=form_market.cleaned_data['market'])
+                x.publish()
             read_only_skus = []
             if request.POST.get('editing-0-sku') or request.POST.get('readonly-0-sku'):
                 idx = 0
@@ -220,10 +219,14 @@ class ViewTableSkus(TemplateView):
         visited = []
         for item in period_items_data:
             if item.sku.sku not in visited and visited:
-                quarter.get(1).append(q1.copy())
-                quarter.get(2).append(q2.copy())
-                quarter.get(3).append(q3.copy())
-                quarter.get(4).append(q4.copy())
+                if q1:
+                    quarter.get(1).append(q1.copy())
+                if q2:
+                    quarter.get(2).append(q2.copy())
+                if q3:
+                    quarter.get(3).append(q3.copy())
+                if q4:
+                    quarter.get(4).append(q4.copy())
                 q1.clear()
                 q2.clear()
                 q3.clear()
@@ -267,7 +270,6 @@ class ViewTableSkus(TemplateView):
                 else:
                     q3.append(item_data)
             elif 9 < item.date_start.month <= 12:
-                print(1)
                 if item.sku.sku not in visited_q4:
                     visited_q4.append(item.sku.sku)
                     q4.append(start_items_data)
@@ -279,7 +281,6 @@ class ViewTableSkus(TemplateView):
             quarter.get(3).append(q3)
             quarter.get(4).append(q4)
         print(quarter)
-        print(q4)
         return render(request, self.template_name, context={
             "table_30days": pruduct_30_days, "quarter_data": quarter
         })
