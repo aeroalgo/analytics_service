@@ -17,10 +17,11 @@ Including another URLconf
 from django.urls import path
 from django.contrib.auth.views import LogoutView
 
-from app.product_search.views import SearchProduct, CreateAssembly
+from app.product_search.views import SearchProduct, CreateAssembly, ViewTableSkus
 
 urlpatterns = [
     path('create/', CreateAssembly.as_view(), name="create_assembly"),
     path('create/<int:id>/', SearchProduct.as_view(), name="product_search"),
+    path('view/<int:id>/', ViewTableSkus.as_view(), name="product_view"),
 
 ]

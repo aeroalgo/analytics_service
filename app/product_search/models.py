@@ -73,7 +73,7 @@ class PeriodData(models.Model):
         verbose_name="Выручка за период", blank=True, null=True
     )
     final_price_average = models.FloatField(
-        verbose_name="Средняя цена за период (выручка / число продаж)", blank=True, null=True
+        verbose_name="Средняя цена за период (выручка / число продаж)", blank=True, null=True,
     )
     sales = models.IntegerField(
         verbose_name="Количество проданных единиц товара за период", blank=True, null=True
@@ -116,4 +116,10 @@ class Last30DaysData(models.Model):
     )
     comments = models.FloatField(
         verbose_name="Количество отзывов", blank=True, null=True
+    )
+    start_price = models.FloatField(
+        verbose_name="Стартовая цена продажи", blank=True, null=True
+    )
+    lost_profit = models.FloatField(
+        verbose_name="Упущенная выручка", blank=True, null=True
     )

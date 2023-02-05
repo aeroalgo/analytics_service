@@ -7,7 +7,7 @@ from django.http import HttpResponseRedirect
 from django.views.generic import TemplateView
 from app.product_search.tasks.load_pruduct import GetSku
 from app.product_search.test_async_task import GeneratePollReport
-from app.product_search.models import Product, ProductProperty, Assembly
+from app.product_search.models import Product, ProductProperty, Assembly, Last30DaysData, PeriodData
 from app.product_search.form import AddSku, SelectMP, EditingPropertyProduct, ReadonlyPropertyProduct, \
     CreateAssemblyForm
 
@@ -16,21 +16,18 @@ class SearchProduct(TemplateView):
     template_name = "add_product.html"
     add_sku = AddSku()
     select_mp = SelectMP()
+    redirect_url = '/product_search/view/{id}/'
 
     def get(self, request, id):
         try:
-            start_date = datetime.datetime.now().date() - datetime.timedelta(weeks=52)
-            day_delta = start_date.day
-            start_date = start_date - datetime.timedelta(days=day_delta - 1)
-            print(start_date)
-            print(list(rrule(freq=MONTHLY, count=12, dtstart=start_date)))
             exist_skus = Assembly.objects.get(id=id).skus.all()
             editing_form, read_only_form = self.get_formsets(editing=exist_skus)
             formset_context = {
                 "add_sku_form": self.add_sku,
                 "select_mp": self.select_mp,
-                "editing_form_one": editing_form or read_only_form,
+                "read_only_form": editing_form or read_only_form,
             }
+
             return render(request, self.template_name, context=formset_context)
         except:
             return render(request, self.template_name, context={
@@ -45,8 +42,8 @@ class SearchProduct(TemplateView):
             skus = form_sku.cleaned_data['sku'].split(", ")
             exist_products = Product.objects.filter(sku__in=skus).values_list('sku', flat=True)
             new_skus = [sku for sku in skus if sku not in exist_products]
-            self.add_new_sku(new_skus=new_skus, form_market=form_market)
-            # if self.add_new_sku(new_skus=new_skus, form_market=form_market):
+            if self.add_new_sku(new_skus=new_skus, form_market=form_market):
+                pass
             x = GetSku(skus=skus, mp=form_market.cleaned_data['market'])
             x.publish()
             read_only_skus = []
@@ -74,7 +71,7 @@ class SearchProduct(TemplateView):
             if 'add_sku_in_assembly' in request.POST:
                 for sku in read_only_skus:
                     Assembly.objects.get(id=id).skus.add(sku)
-                # Сделать редирект на страницу с таблицами
+                return HttpResponseRedirect(self.redirect_url.format(id=id))
             formset_context = {
                 "add_sku_form": self.add_sku,
                 "select_mp": self.select_mp,
@@ -170,3 +167,119 @@ class CreateAssembly(TemplateView):
             instance_assembly.name = assembly_data.cleaned_data['name']
             instance_assembly.save()
             return instance_assembly.id
+
+
+class ViewTableSkus(TemplateView):
+    template_name = "view_table_skus.html"
+
+    def get(self, request, id):
+        quarter = {
+            1: [],
+            2: [],
+            3: [],
+            4: []
+        }
+        pruduct_30_days = []
+        exist_assembly = Assembly.objects.get(id=id)
+        skus = exist_assembly.skus.all()
+        skus_id = []
+        for sku in skus:
+            skus_id.append(sku.id)
+        items_data = Last30DaysData.objects.filter(sku_id__in=skus_id).select_related("sku")
+        for item in items_data:
+            property = item.sku.property.first()
+            pruduct_30_days.append({
+                "mp": dict(ProductProperty.MARKETS).get(property.mp),
+                "competition": dict(ProductProperty.COMPETITIONS).get(property.competition),
+                "article": item.sku.sku,
+                # "lost_profit": item.lost_profit,
+                "revenue": round(item.revenue, 1),
+                "final_price_average": round(item.final_price_average, 1),
+                # Валовая прибыль нет в описании
+                "val_price": None,
+                # Средняя позиция в выдаче не понятно как считать
+                "categories_pos": None,
+                "first_date": item.first_date,
+                "start_price": None,
+                "sales": item.sales,
+                "rating": item.rating,
+                "comments": item.comments,
+            })
+        period_items_data = PeriodData.objects.filter(sku_id__in=skus_id).select_related("sku").order_by("sku",
+                                                                                                         "date_start")
+        visited_q1 = []
+        visited_q2 = []
+        visited_q3 = []
+        visited_q4 = []
+
+        q1 = []
+        q2 = []
+        q3 = []
+        q4 = []
+
+        visited = []
+        for item in period_items_data:
+            if item.sku.sku not in visited and visited:
+                quarter.get(1).append(q1.copy())
+                quarter.get(2).append(q2.copy())
+                quarter.get(3).append(q3.copy())
+                quarter.get(4).append(q4.copy())
+                q1.clear()
+                q2.clear()
+                q3.clear()
+                q4.clear()
+                visited.clear()
+            visited.append(item.sku.sku)
+            property = item.sku.property.first()
+            item_data = {
+                "revenue": round(item.revenue, 1),
+                # "lost_profit": item.lost_profit,
+                "lost_profit": item.lost_profit,
+                "sales": item.sales,
+                "final_price_average": round(item.final_price_average, 1),
+                # Валовая прибыль нет в описании
+                # Средняя позиция в выдаче не понятно как считать
+
+            }
+            start_items_data = {
+                "mp": dict(ProductProperty.MARKETS).get(property.mp),
+                "competition": dict(ProductProperty.COMPETITIONS).get(property.competition),
+                "article": item.sku.sku,
+                **item_data
+            }
+
+            if item.date_start.month <= 3:
+                if item.sku.sku not in visited_q1:
+                    visited_q1.append(item.sku.sku)
+                    q1.append(start_items_data)
+                else:
+                    q1.append(item_data)
+            elif 3 < item.date_start.month <= 6:
+                if item.sku.sku not in visited_q2:
+                    visited_q2.append(item.sku.sku)
+                    q2.append(start_items_data)
+                else:
+                    q2.append(item_data)
+            elif 6 < item.date_start.month <= 9:
+                if item.sku.sku not in visited_q3:
+                    visited_q3.append(item.sku.sku)
+                    q3.append(start_items_data)
+                else:
+                    q3.append(item_data)
+            elif 9 < item.date_start.month <= 12:
+                print(1)
+                if item.sku.sku not in visited_q4:
+                    visited_q4.append(item.sku.sku)
+                    q4.append(start_items_data)
+                else:
+                    q4.append(item_data)
+        if len(set(visited)) == 1:
+            quarter.get(1).append(q1)
+            quarter.get(2).append(q2)
+            quarter.get(3).append(q3)
+            quarter.get(4).append(q4)
+        print(quarter)
+        print(q4)
+        return render(request, self.template_name, context={
+            "table_30days": pruduct_30_days, "quarter_data": quarter
+        })

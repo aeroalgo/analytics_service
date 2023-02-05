@@ -101,7 +101,11 @@ class ParseSkuWB(ExtractData):
         instance.rating = item.get("rating")
         instance.comments = item.get("comments")
         instance.category = source
-        instance.save()
+        instance.start_price = item.get("start_price")
+        now = datetime.datetime.now().date()
+        data = Last30DaysData.objects.filter(sku_id=product.id, date_update=now)
+        if not data:
+            instance.save()
         # next_tasks.append(
         #     Task(url=NEXT_URL.format(d1=cd_kwargs.get("d1"), d2=cd_kwargs.get("d2"), sku=cd_kwargs.get("item_id")),
         #          headers=headers.copy(), callback=self.get_category_pos, cd_kwargs=cd_kwargs.copy()))
@@ -116,7 +120,6 @@ class ParseSkuWB(ExtractData):
 
     def get_brand_data_period(self, response, headers, cookie, payload, cd_kwargs):
         item = response.get("data")[0]
-        print(cd_kwargs)
         source, _ = Categories.objects.get_or_create(name=item.get("category"))
         product = Product.objects.get(sku=cd_kwargs.get("item_id"))
         instance = PeriodData()
@@ -128,7 +131,10 @@ class ParseSkuWB(ExtractData):
         instance.final_price_average = item.get("final_price_average")
         instance.sales = item.get("sales")
         instance.category = source
-        instance.save()
+
+        exist_date = list(PeriodData.objects.filter(sku_id=product.id).values_list('date_start', flat=True))
+        if cd_kwargs.get("d1") not in exist_date:
+            instance.save()
 
 
 class ParseSkuOzon(ExtractData):
