@@ -206,97 +206,130 @@
             <div class="content-wrapper">
                 <div class="card">
                     <div class="card-body">
-                        <h4 class="card-title">Последние 30 дней</h4>
                         <div class="row">
-                            <div class="col-12">
-                                <div class="table-responsive">
-                                    <table id="order-listing" class="table">
-                                        <thead>
-                                        <tr>
-                                            <th>MP</th>
-                                            <th>Тип конкуренции</th>
-                                            <th>Артикул</th>
-                                            <th>Выручка<br>за посл 30 дней</th>
-                                            <th>Средняя цена<br>за посл 30 дней</th>
-                                            <th>Валовая<br>прибыль</th>
-                                            <th>Средняя позиция<br>в выдаче</th>
-                                            <th>Дата<br>первого появления</th>
-                                            <th>Стартовая<br>цена продажи</th>
-                                            <th>Количество<br>продаж</th>
-                                            <th>Рейтинг</th>
-                                            <th>Комментариев</th>
-                                        </tr>
-                                        </thead>
-                                        <tbody>
-                                        {% for item in table_30days %}
-                                        <tr>
-                                            {% for key, value in item.items() %}
-                                            <td>{{ value }}</td>
-                                            {% endfor %}
-                                        </tr>
-                                        {% endfor %}
-                                        </tbody>
-                                    </table>
+                            <div class="col-6">
+                                <h4 class="card-title">Последние 30 дней</h4>
+                            </div>
+                            <div class="col-6">
+                                <div class="text-right">
+                                    <button type="button" class="btn btn-primary"
+                                            onclick="location.href='update/';">Обновить
+                                        таблицу
+                                    </button>
+                                    <button type="button" class="btn btn-primary" onclick="location.href='edit/';">
+                                        Редактировать товары
+                                    </button>
+                                    <button type="button" class="btn btn-primary">
+                                        Графики продаж
+                                    </button>
                                 </div>
                             </div>
                         </div>
-                    </div>
-                    <div class="card">
+                        <!--                    </div>-->
                         <div class="card-body">
-                            <h4 class="card-title">Периоды</h4>
-                            <ul class="nav nav-pills nav-pills-success" id="pills-tab" role="tablist">
-                                <li class="nav-item">
-                                    <a class="nav-link active" id="pills-home-tab" data-bs-toggle="pill"
-                                       href="#pills-home" role="tab" aria-controls="pills-home" aria-selected="true">
-                                        1 квартал</a>
-                                </li>
-                                <li class="nav-item">
-                                    <a class="nav-link" id="pills-profile-tab" data-bs-toggle="pill"
-                                       href="#pills-profile" role="tab" aria-controls="pills-profile"
-                                       aria-selected="false">2 квартал</a>
-                                </li>
-                                <li class="nav-item">
-                                    <a class="nav-link" id="pills-contact-tab" data-bs-toggle="pill"
-                                       href="#pills-contact" role="tab" aria-controls="pills-contact"
-                                       aria-selected="false">3 квартал</a>
-                                </li>
-                                <li class="nav-item">
-                                    <a class="nav-link" id="pills-4-kv-tab" data-bs-toggle="pill"
-                                       href="#pills-4-kv" role="tab" aria-controls="pills-4-kv"
-                                       aria-selected="false">4 квартал</a>
-                                </li>
-                            </ul>
-                            <div class="tab-content" id="pills-tabContent">
-                                <div class="tab-pane fade show active" id="pills-home" role="tabpanel"
-                                     aria-labelledby="pills-home-tab">
-                                    <div class="media">
-                                        <div class="media-body">
+                            <div class="row">
+                                <div class="col-12">
+                                    <div class="table-responsive">
+                                        <table id="order-listing" class="table">
+                                            <thead>
+                                            <tr>
+                                                <th>Последнее<br>обновление</th>
+                                                <th>MP</th>
+                                                <th>Тип<br>конкуренции</th>
+                                                <th>Артикул</th>
+                                                <th>Наименование</th>
+                                                <th>Последняя<br>цена</th>
+                                                <th>Цена 80%<br>продаж</th>
+                                                <th>Выручка<br>за 30 дней</th>
+                                                <th>Средняя цена<br>за 30 дней</th>
+                                                <th>Валовая<br>прибыль</th>
+                                                <th>Средняя<br>в выдаче</th>
+                                                <th>Дата первого<br>появления</th>
+                                                <th>Стартовая<br>цена</th>
+                                                <th>Кол-во<br>продаж</th>
+                                                <th>Рейт</th>
+                                                <th>Коммент</th>
+                                            </tr>
+                                            </thead>
+                                            <tbody>
+                                            {% for item in table_30days %}
+                                            <tr>
+                                                {% for key, value in item.items() %}
+                                                {% if value is number %}
+                                                <td>{{ '{0:,}'.format(value).replace(',', ' ') }}</td>
+                                                {% else %}
+                                                <td>{{ value|safe }}</td>
+                                                {% endif %}
+                                                {% endfor %}
+                                            </tr>
+                                            {% endfor %}
+                                            </tbody>
+                                        </table>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="card">
+                            <div class="card-body">
+                                <h4 class="card-title">Периоды</h4>
+                                <ul class="nav nav-pills nav-pills-success" id="pills-tab" role="tablist">
+                                    <li class="nav-item">
+                                        <a class="nav-link active" id="pills-home-tab" data-bs-toggle="pill"
+                                           href="#pills-home" role="tab" aria-controls="pills-home"
+                                           aria-selected="true">
+                                            1 квартал</a>
+                                    </li>
+                                    <li class="nav-item">
+                                        <a class="nav-link" id="pills-profile-tab" data-bs-toggle="pill"
+                                           href="#pills-profile" role="tab" aria-controls="pills-profile"
+                                           aria-selected="false">2 квартал</a>
+                                    </li>
+                                    <li class="nav-item">
+                                        <a class="nav-link" id="pills-contact-tab" data-bs-toggle="pill"
+                                           href="#pills-contact" role="tab" aria-controls="pills-contact"
+                                           aria-selected="false">3 квартал</a>
+                                    </li>
+                                    <li class="nav-item">
+                                        <a class="nav-link" id="pills-4-kv-tab" data-bs-toggle="pill"
+                                           href="#pills-4-kv" role="tab" aria-controls="pills-4-kv"
+                                           aria-selected="false">4 квартал</a>
+                                    </li>
+                                </ul>
+                                <div class="tab-content" id="pills-tabContent">
+                                    <div class="tab-pane fade show active" id="pills-home" role="tabpanel"
+                                         aria-labelledby="pills-home-tab">
+                                        <div class="table-responsive">
                                             <table id="order-listing2" class="table">
                                                 <thead>
                                                 <tr>
+                                                    <th>Год</th>
                                                     <th>MP</th>
-                                                    <th>Тип конкуренции</th>
+                                                    <th>Тип<br>конкуренции</th>
                                                     <th>Артикул</th>
                                                     <th>Выручка</th>
                                                     <th>Упущенная<br>выручка</th>
-                                                    <th>Количество<br>продаж</th>
+                                                    <th>Кол-во<br>продаж</th>
                                                     <th>Средняя<br>цена продажи</th>
                                                     <th>Выручка</th>
                                                     <th>Упущенная<br>выручка</th>
-                                                    <th>Количество<br>продаж</th>
+                                                    <th>Кол-во<br>продаж</th>
                                                     <th>Средняя<br>цена продажи</th>
                                                     <th>Выручка</th>
                                                     <th>Упущенная<br>выручка</th>
-                                                    <th>Количество<br>продаж</th>
+                                                    <th>Кол-во<br>продаж</th>
                                                     <th>Средняя<br>цена продажи</th>
                                                 </tr>
                                                 </thead>
                                                 <tbody>
-                                                {% for item in quarter_data.get(1) %}
+                                                {% for items in quarter_data.get(1) %}
                                                 <tr>
-                                                    {% for data in item %}
+                                                    {% for data in items %}
                                                     {% for key, value in data.items() %}
+                                                    {% if value is number %}
+                                                    <td>{{ '{0:,}'.format(value).replace(',', ' ') }}</td>
+                                                    {% else %}
                                                     <td>{{ value }}</td>
+                                                    {% endif %}
                                                     {% endfor %}
                                                     {% endfor %}
                                                 </tr>
@@ -305,38 +338,41 @@
                                             </table>
                                         </div>
                                     </div>
-                                </div>
-                                <div class="tab-pane fade" id="pills-profile" role="tabpanel"
-                                     aria-labelledby="pills-profile-tab">
-                                    <div class="media">
-                                        <div class="media-body">
+                                    <div class="tab-pane fade" id="pills-profile" role="tabpanel"
+                                         aria-labelledby="pills-profile-tab">
+                                        <div class="table-responsive">
                                             <table id="order-listing3" class="table">
                                                 <thead>
                                                 <tr>
+                                                    <th>Год</th>
                                                     <th>MP</th>
-                                                    <th>Тип конкуренции</th>
+                                                    <th>Тип<br>конкуренции</th>
                                                     <th>Артикул</th>
                                                     <th>Выручка</th>
                                                     <th>Упущенная<br>выручка</th>
-                                                    <th>Количество<br>продаж</th>
+                                                    <th>Кол-во<br>продаж</th>
                                                     <th>Средняя<br>цена продажи</th>
                                                     <th>Выручка</th>
                                                     <th>Упущенная<br>выручка</th>
-                                                    <th>Количество<br>продаж</th>
+                                                    <th>Кол-во<br>продаж</th>
                                                     <th>Средняя<br>цена продажи</th>
                                                     <th>Выручка</th>
                                                     <th>Упущенная<br>выручка</th>
-                                                    <th>Количество<br>продаж</th>
+                                                    <th>Кол-во<br>продаж</th>
                                                     <th>Средняя<br>цена продажи</th>
                                                 </tr>
                                                 </thead>
                                                 <tbody>
-                                                {% for item in quarter_data.get(2) %}
+                                                {% for items in quarter_data.get(2) %}
 
                                                 <tr>
-                                                    {% for data in item %}
+                                                    {% for data in items %}
                                                     {% for key, value in data.items() %}
+                                                    {% if value is number %}
+                                                    <td>{{ '{0:,}'.format(value).replace(',', ' ') }}</td>
+                                                    {% else %}
                                                     <td>{{ value }}</td>
+                                                    {% endif %}
                                                     {% endfor %}
                                                     {% endfor %}
                                                 </tr>
@@ -345,37 +381,40 @@
                                             </table>
                                         </div>
                                     </div>
-                                </div>
-                                <div class="tab-pane fade" id="pills-contact" role="tabpanel"
-                                     aria-labelledby="pills-contact-tab">
-                                    <div class="media">
-                                        <div class="media-body">
+                                    <div class="tab-pane fade" id="pills-contact" role="tabpanel"
+                                         aria-labelledby="pills-contact-tab">
+                                        <div class="table-responsive">
                                             <table id="order-listing4" class="table">
                                                 <thead>
                                                 <tr>
+                                                    <th>Год</th>
                                                     <th>MP</th>
-                                                    <th>Тип конкуренции</th>
+                                                    <th>Тип<br>конкуренции</th>
                                                     <th>Артикул</th>
                                                     <th>Выручка</th>
                                                     <th>Упущенная<br>выручка</th>
-                                                    <th>Количество<br>продаж</th>
+                                                    <th>Кол-во<br>продаж</th>
                                                     <th>Средняя<br>цена продажи</th>
                                                     <th>Выручка</th>
                                                     <th>Упущенная<br>выручка</th>
-                                                    <th>Количество<br>продаж</th>
+                                                    <th>Кол-во<br>продаж</th>
                                                     <th>Средняя<br>цена продажи</th>
                                                     <th>Выручка</th>
                                                     <th>Упущенная<br>выручка</th>
-                                                    <th>Количество<br>продаж</th>
+                                                    <th>Кол-во<br>продаж</th>
                                                     <th>Средняя<br>цена продажи</th>
                                                 </tr>
                                                 </thead>
                                                 <tbody>
-                                                {% for item in quarter_data.get(3) %}
+                                                {% for items in quarter_data.get(3) %}
                                                 <tr>
-                                                    {% for data in item %}
-                                                    {% for key, value1 in data.items() %}
-                                                    <td>{{ value1 }}</td>
+                                                    {% for data in items %}
+                                                    {% for key, value in data.items() %}
+                                                    {% if value is number %}
+                                                    <td>{{ '{0:,}'.format(value).replace(',', ' ') }}</td>
+                                                    {% else %}
+                                                    <td>{{ value }}</td>
+                                                    {% endif %}
                                                     {% endfor %}
                                                     {% endfor %}
                                                 </tr>
@@ -384,38 +423,41 @@
                                             </table>
                                         </div>
                                     </div>
-                                </div>
-                                <div class="tab-pane fade" id="pills-4-kv" role="tabpanel"
-                                     aria-labelledby="pills-4-kv-tab">
-                                    <div class="media">
-                                        <div class="media-body">
+                                    <div class="tab-pane fade" id="pills-4-kv" role="tabpanel"
+                                         aria-labelledby="pills-4-kv-tab">
+                                        <div class="table-responsive">
                                             <table id="order-listing5" class="table">
                                                 <thead>
                                                 <tr>
+                                                    <th>Год</th>
                                                     <th>MP</th>
-                                                    <th>Тип конкуренции</th>
+                                                    <th>Тип<br>конкуренции</th>
                                                     <th>Артикул</th>
                                                     <th>Выручка</th>
                                                     <th>Упущенная<br>выручка</th>
-                                                    <th>Количество<br>продаж</th>
+                                                    <th>Кол-во<br>продаж</th>
                                                     <th>Средняя<br>цена продажи</th>
                                                     <th>Выручка</th>
                                                     <th>Упущенная<br>выручка</th>
-                                                    <th>Количество<br>продаж</th>
+                                                    <th>Кол-во<br>продаж</th>
                                                     <th>Средняя<br>цена продажи</th>
                                                     <th>Выручка</th>
                                                     <th>Упущенная<br>выручка</th>
-                                                    <th>Количество<br>продаж</th>
+                                                    <th>Кол-во<br>продаж</th>
                                                     <th>Средняя<br>цена продажи</th>
                                                 </tr>
                                                 </thead>
                                                 <tbody>
-                                                {% for item in quarter_data.get(4) %}
+                                                {% for items in quarter_data.get(4) %}
 
                                                 <tr>
-                                                    {% for data in item %}
+                                                    {% for data in items %}
                                                     {% for key, value in data.items() %}
+                                                    {% if value is number %}
+                                                    <td>{{ '{0:,}'.format(value).replace(',', ' ') }}</td>
+                                                    {% else %}
                                                     <td>{{ value }}</td>
+                                                    {% endif %}
                                                     {% endfor %}
                                                     {% endfor %}
                                                 </tr>
@@ -429,28 +471,27 @@
                         </div>
                     </div>
                 </div>
-            </div>
-            <!-- content-wrapper ends -->
-            <!-- partial:partials/_footer.html -->
-            <footer class="footer">
-                <div class="d-sm-flex justify-content-center justify-content-sm-between">
+                <!-- content-wrapper ends -->
+                <!-- partial:partials/_footer.html -->
+                <footer class="footer">
+                    <div class="d-sm-flex justify-content-center justify-content-sm-between">
                     <span class="text-muted text-center text-sm-left d-block d-sm-inline-block">Copyright © 2021.  Premium <a
                             href="https://www.bootstrapdash.com/" target="_blank">Bootstrap admin template</a> from BootstrapDash. All rights reserved.</span>
-                    <span class="float-none float-sm-right d-block mt-1 mt-sm-0 text-center">Hand-crafted & made with <i
-                            class="ti-heart text-danger ml-1"></i></span>
-                </div>
-                <div class="d-sm-flex justify-content-center justify-content-sm-between">
+                        <span class="float-none float-sm-right d-block mt-1 mt-sm-0 text-center">Hand-crafted & made with <i
+                                class="ti-heart text-danger ml-1"></i></span>
+                    </div>
+                    <div class="d-sm-flex justify-content-center justify-content-sm-between">
                     <span class="text-muted text-center text-sm-left d-block d-sm-inline-block">Distributed by <a
                             href="https://www.themewagon.com/" target="_blank">Themewagon</a></span>
-                </div>
-            </footer>
-            <!-- partial -->
+                    </div>
+                </footer>
+                <!-- partial -->
+            </div>
+            <!-- main-panel ends -->
         </div>
-        <!-- main-panel ends -->
     </div>
-</div>
-<!-- page-body-wrapper ends -->
-{% include "scripts.html" %}
+    <!-- page-body-wrapper ends -->
+    {% include "scripts.html" %}
 </body>
 
 </html>
