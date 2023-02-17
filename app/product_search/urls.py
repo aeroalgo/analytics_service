@@ -17,13 +17,14 @@ Including another URLconf
 from django.urls import path
 from django.contrib.auth.views import LogoutView
 
-from app.product_search.views import SearchProduct, CreateAssembly, ViewTableSkus, UpdateTable, EditTable
+from app.product_search.views import SearchProduct, CreateAssembly, ViewTableSkus, UpdateTable, EditTable, Charts
 
 urlpatterns = [
     path('create/', CreateAssembly.as_view(), name="create_assembly"),
     path('create/<int:id>/', SearchProduct.as_view(), name="product_search"),
     path('view/<int:id>/', ViewTableSkus.as_view(), name="product_view"),
     path('view/<int:id>/update/', UpdateTable.as_view(), name="update_table"),
-    path('view/<int:id>/edit/', EditTable.as_view(), name="edit_table")
+    path('view/<int:id>/edit/', EditTable.as_view(), name="edit_table"),
+    path('view/<int:id>/charts/', Charts.as_view(), name="charts")
 
 ]

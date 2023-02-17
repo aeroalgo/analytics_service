@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="en" xmlns="http://www.w3.org/1999/html">
 
 <head>
     {% include "head.html" %}
@@ -210,65 +210,10 @@
                             <div class="col-md-6 grid-margin stretch-card">
                                 <div class="card">
                                     <div class="card-body">
-                                        <p class="card-description">
-                                            Введите sku в формате 131605845, для множественного добавления 131605845,
-                                            259485564
-                                        </p>
-                                        <form class="forms-sample" method="post">
-                                            {{ csrf_input }}
-                                            <div class="form-group">
-                                                <div class="input-group">
-                                                    {{ add_sku_form }}
-                                                    <div class="input-group-append" style="width:33.4%;">
-                                                        {{ select_mp }}
-                                                    </div>
-                                                </div>
-                                            </div>
-                                            <div class="form-group">
-                                                <button type="submit" name="add_new_sku"
-                                                        class="btn btn-primary me-2">Добавить
-                                                </button>
-                                            </div>
-                                            {% if editing_form %}
-                                            {% for form in editing_form %}
-                                            <div class="form-group">
-                                                <div class="input-group">
-                                                    {% for field in form %}
-                                                    <div class="input-group-append"
-                                                         style="width:33.4%; padding:3px">
-                                                        {{ field }}
-                                                    </div>
-                                                    {% endfor %}
-                                                </div>
-                                            </div>
-                                            {% endfor %}
-                                            {% endif %}
-                                            {% if read_only_form %}
-                                            {% for form in read_only_form %}
-                                            <div class="form-group">
-                                                <div class="input-group">
-                                                    {% for field in form %}
-                                                    <div class="input-group-append"
-                                                         style="width:33.4%; padding:3px">
-                                                        {{ field }}
-                                                    </div>
-                                                    {% endfor %}
-                                                </div>
-                                            </div>
-                                            {% endfor %}
-                                            {% endif %}
-                                            <div class="form-group">
-                                                <p class="card-description">
-                                                    Укажите sku которые нужно удалить
-                                                </p>
-                                                {{ del_sku }}
-                                            </div>
-                                            {% if editing_form or read_only_form %}
-                                            <button type="submit" name="edit_table"
-                                                    class="btn btn-primary me-2">Сохранить
-                                            </button>
-                                            {% endif %}
-                                        </form>
+                                        <canvas id="price_chart"></canvas>
+                                    </div>
+                                    <div class="card-body">
+                                        <canvas id="sales_chart"></canvas>
                                     </div>
                                 </div>
                             </div>
@@ -297,6 +242,133 @@
 </div>
 <!-- page-body-wrapper ends -->
 {% include "scripts.html" %}
+<script>
+
+{% block javascript %}
+  var ctx = document.getElementById( "price_chart" );
+    var myChart = new Chart( ctx, {
+        type: 'line',
+        data: {
+            labels: {{ labels | tojson }},
+            type: 'line',
+            defaultFontFamily: 'Montserrat',
+            datasets: {{ price_data | tojson }}
+        },
+        options: {
+            responsive: true,
+            tooltips: {
+                mode: 'index',
+                titleFontSize: 12,
+                titleFontColor: '#000',
+                bodyFontColor: '#000',
+                backgroundColor: '#fff',
+                titleFontFamily: 'Montserrat',
+                bodyFontFamily: 'Montserrat',
+                cornerRadius: 3,
+                intersect: false,
+            },
+            legend: {
+                display: true,
+                labels: {
+                    usePointStyle: true,
+                    fontFamily: 'Montserrat',
+                },
+            },
+            scales: {
+                xAxes: [ {
+                    display: true,
+                    gridLines: {
+                        display: false,
+                        drawBorder: false
+                    },
+                    scaleLabel: {
+                        display: false,
+                        labelString: 'Month'
+                    }
+                        } ],
+                yAxes: [ {
+                    display: true,
+                    gridLines: {
+                        display: false,
+                        drawBorder: false
+                    },
+                    scaleLabel: {
+                        display: true,
+                        labelString: 'Value'
+                    }
+                        } ]
+            },
+            title: {
+                display: false,
+                text: 'Normal Legend'
+            }
+        }
+    } );
+
+  var ctx = document.getElementById( "sales_chart" );
+    var myChart = new Chart( ctx, {
+        type: 'line',
+        data: {
+            labels: {{ labels | tojson }},
+            type: 'line',
+            defaultFontFamily: 'Montserrat',
+            datasets: {{ sales_data | tojson }}
+        },
+        options: {
+            responsive: true,
+            tooltips: {
+                mode: 'index',
+                titleFontSize: 12,
+                titleFontColor: '#000',
+                bodyFontColor: '#000',
+                backgroundColor: '#fff',
+                titleFontFamily: 'Montserrat',
+                bodyFontFamily: 'Montserrat',
+                cornerRadius: 3,
+                intersect: false,
+            },
+            legend: {
+                display: true,
+                labels: {
+                    usePointStyle: true,
+                    fontFamily: 'Montserrat',
+                },
+            },
+            scales: {
+                xAxes: [ {
+                    display: true,
+                    gridLines: {
+                        display: false,
+                        drawBorder: false
+                    },
+                    scaleLabel: {
+                        display: false,
+                        labelString: 'Month'
+                    }
+                        } ],
+                yAxes: [ {
+                    display: true,
+                    gridLines: {
+                        display: false,
+                        drawBorder: false
+                    },
+                    scaleLabel: {
+                        display: true,
+                        labelString: 'Value'
+                    }
+                        } ]
+            },
+            title: {
+                display: false,
+                text: 'Normal Legend'
+            }
+        }
+    } );
+
+{% endblock %}
+
+
+</script>
 </body>
 
 </html>

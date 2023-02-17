@@ -5,6 +5,8 @@ from django.shortcuts import render
 from django.forms import formset_factory
 from django.http import HttpResponseRedirect
 from django.views.generic import TemplateView
+
+from app.product_search.charts import LineChartData
 from app.product_search.tasks.load_pruduct import GetSku
 from app.product_search.test_async_task import GeneratePollReport
 from app.product_search.models import Product, ProductProperty, Assembly, Last30DaysData, PeriodData
@@ -12,7 +14,25 @@ from app.product_search.form import AddSku, SelectMP, EditingPropertyProduct, Re
     CreateAssemblyForm, SelectDeleteSku, EditingAssembly
 
 
-class SearchProduct(TemplateView):
+class AddProduct:
+    def add_new_sku(self, new_skus, form_market):
+        """Функция добавляет новые sku которых нет в базе"""
+        add_new_sku = []
+        if new_skus:
+            for sku in new_skus:
+                if sku != '':
+                    instance_sku = Product()
+                    instance_sku.sku = sku
+                    instance_sku.mp = form_market.cleaned_data['market']
+                    add_new_sku.append(instance_sku)
+            Product.objects.bulk_create(add_new_sku)
+            return True
+
+    def update_property_in_assembly(self):
+        pass
+
+
+class SearchProduct(TemplateView, AddProduct):
     template_name = "add_product.html"
     add_sku = AddSku()
     select_mp = SelectMP()
@@ -47,6 +67,7 @@ class SearchProduct(TemplateView):
                 x = GetSku(skus=new_skus, mp=form_market.cleaned_data['market'])
                 x.publish()
             read_only_skus = []
+
             if request.POST.get('editing-0-sku') or request.POST.get('readonly-0-sku'):
                 idx = 0
                 assembly = Assembly.objects.get(id=id)
@@ -69,7 +90,7 @@ class SearchProduct(TemplateView):
                 '-id'))
             read_only_skus = list(Product.objects.filter(sku__in=read_only_skus).prefetch_related("property").order_by(
                 '-id'))
-            # Связываем сборку с товарами при нажатии на кнопку сохранить
+            # Связываем сборку с товарами
             for sku in read_only_skus:
                 Assembly.objects.get(id=id).skus.add(sku)
             if 'add_sku_in_assembly' in request.POST:
@@ -97,7 +118,6 @@ class SearchProduct(TemplateView):
         editing_form = []
         read_only = read_only.copy()
         for idx, sku in enumerate(editing):
-            print(sku)
             if [property.competition for property in sku.property.filter(assembly=id_assembly)]:
                 read_only.append(sku)
                 continue
@@ -120,19 +140,6 @@ class SearchProduct(TemplateView):
                     )
                 }))
         return editing_form, read_only_form
-
-    def add_new_sku(self, new_skus, form_market):
-        """Функция добавляет новые sku которых нет в базе"""
-        add_new_sku = []
-        if new_skus:
-            for sku in new_skus:
-                if sku != '':
-                    instance_sku = Product()
-                    instance_sku.sku = sku
-                    instance_sku.mp = form_market.cleaned_data['market']
-                    add_new_sku.append(instance_sku)
-            Product.objects.bulk_create(add_new_sku)
-            return True
 
 
 class CreateAssembly(TemplateView):
@@ -209,13 +216,18 @@ class ViewTableSkus(TemplateView):
             11: 1,
             12: 0,
         }
+        count = 0
         for idx_sku, sku in enumerate(skus):
             sku_id = sku.id
             period_items_data = PeriodData.objects.filter(sku_id=sku_id).select_related("sku").order_by("date_start")
             property = sku.property.filter(assembly=id)
 
-            insert_idx = 0 + idx_sku
+            insert_idx = count + idx_sku
+            year = ""
             for idx_item, item in enumerate(period_items_data):
+                # if year != "" and year != item.date_start.year:
+                #     count += 1
+                # year = item.date_start.year
                 item_data_default = {
                     "revenue": None,
                     "lost_profit": None,
@@ -256,9 +268,11 @@ class ViewTableSkus(TemplateView):
                 if data:
                     quarter.get(PeriodData.MONTH_QUARTER.get(item.date_start.month)).append(data.copy())
                 else:
+                    if len(quarter.get(PeriodData.MONTH_QUARTER.get(item.date_start.month)))-1 > insert_idx:
+                        insert_idx = len(quarter.get(PeriodData.MONTH_QUARTER.get(item.date_start.month)))-1
                     quarter.get(PeriodData.MONTH_QUARTER.get(item.date_start.month))[insert_idx].append(
                         item_data.copy())
-
+                    insert_idx = count + idx_sku
             skus_id.append(sku_id)
 
         items_data = Last30DaysData.objects.filter(sku_id__in=skus_id).select_related("sku")
@@ -310,17 +324,21 @@ class UpdateTable(TemplateView):
         return HttpResponseRedirect(self.redirect_url.format(id=id))
 
 
-class EditTable(TemplateView):
-    redirect_url = '/product_search/view/{id}/edit'
+class EditTable(TemplateView, AddProduct):
+    redirect_url = '/product_search/view/{id}/'
     template_name = "edit_table.html"
     add_sku = AddSku()
     select_mp = SelectMP()
 
+    def get_delete_form(self, id):
+        exist_skus = Assembly.objects.get(id=id).skus.all()
+        del_sku_form = SelectDeleteSku()
+        del_sku_form.fields['skus'].widget.choices = [(sku.id, sku.sku) for sku in exist_skus]
+        return del_sku_form, exist_skus
+
     def get(self, request, id):
         try:
-            del_sku_form = SelectDeleteSku()
-            exist_skus = Assembly.objects.get(id=id).skus.all()
-            del_sku_form.fields['skus'].widget.choices = [(sku.id, sku.sku) for sku in exist_skus]
+            del_sku_form, exist_skus = self.get_delete_form(id)
             editing_form = self.get_formsets(id_assembly=id, editing=exist_skus)
             formset_context = {
                 "add_sku_form": self.add_sku,
@@ -338,17 +356,117 @@ class EditTable(TemplateView):
             })
 
     def post(self, request, id):
-        print(request.POST)
+        form_sku = AddSku(request.POST, prefix='sku')
+        form_market = SelectMP(request.POST, prefix='mp')
+        if form_sku.is_valid() and form_market.is_valid():
+            skus = form_sku.cleaned_data['sku'].split(", ")
+            exist_products = Product.objects.filter(sku__in=skus).values_list('sku', flat=True)
+            new_skus = [sku for sku in skus if sku not in exist_products and sku != '']
+            if self.add_new_sku(new_skus=new_skus, form_market=form_market):
+                x = GetSku(skus=new_skus, mp=form_market.cleaned_data['market'])
+                x.publish()
+            read_only_skus = []
+            if request.POST.get('edit_assembly-0-sku'):
+                idx = 0
+                assembly = Assembly.objects.get(id=id)
+                while True:
+                    form_editing = EditingAssembly(request.POST, prefix="edit_assembly-{idx}".format(idx=idx))
+                    if form_editing.is_valid():
+                        product = Product.objects.get(sku=form_editing.cleaned_data['sku'])
+                        product.mp = form_editing.cleaned_data['market']
+                        product.save()
+                        product_prop = ProductProperty.objects.filter(
+                            sku=product, assembly=assembly).first()
+                        if product_prop:
+                            product_prop.competition = form_editing.cleaned_data['competition']
+                            product_prop.save()
+                        else:
+                            ProductProperty.objects.create(
+                                sku=product, competition=form_editing.cleaned_data['competition'], assembly=assembly
+                            )
+                        read_only_skus.append(form_editing.cleaned_data['sku'])
+                    if not form_editing.is_valid():
+                        break
+                    idx += 1
+
+            new_skus = list(Product.objects.filter(sku__in=skus).prefetch_related("property").order_by(
+                '-id'))
+            old_skus = list(Product.objects.filter(sku__in=read_only_skus).prefetch_related("property").order_by(
+                '-id'))
+            new_skus.extend(old_skus)
+
+            # Связываем сборку с товарами
+            for sku in new_skus:
+                Assembly.objects.get(id=id).skus.add(sku)
+
+            formset_context = {
+                "add_sku_form": self.add_sku,
+                "select_mp": self.select_mp,
+            }
+            del_sku_form, exist_skus = self.get_delete_form(id)
+            editing_form = self.get_formsets(id_assembly=id, editing=new_skus)
+            formset_context.update({
+                "editing_form": editing_form,
+                "del_sku": del_sku_form
+            })
+            if 'edit_table' in request.POST:
+                del_sku_form = SelectDeleteSku(request.POST, prefix='del_sku')
+                if del_sku_form.is_valid():
+                    try:
+                        ProductProperty.objects.filter(assembly=id, sku__in=del_sku_form.cleaned_data["skus"]).delete()
+                        assembly = Assembly.objects.get(id=id)
+                        product_skus = Product.objects.filter(id__in=del_sku_form.cleaned_data["skus"])
+                        for sku in product_skus:
+                            assembly.skus.remove(sku)
+                    except:
+                        pass
+                    return HttpResponseRedirect(self.redirect_url.format(id=id))
+            return render(request, self.template_name, context=formset_context)
 
     def get_formsets(self, id_assembly: int, editing: List):
         """Формирование наборов форм для частичного редактирования и read_only форм после окончания редактирования"""
         editing_forms = []
         for idx, sku in enumerate(editing):
             competition = sku.property.filter(assembly=id_assembly).first()
-            editing_form = EditingAssembly(prefix=f"editing-{idx}", initial={
+            editing_form = EditingAssembly(prefix=f"edit_assembly-{idx}", initial={
                 "sku": sku.sku,
                 "market": sku.mp,
-                "competition": competition.competition
+                "competition": competition.competition if competition else ProductProperty.COMPETITION_ANALYZE
             })
             editing_forms.append(editing_form)
         return editing_forms
+
+
+class Charts(TemplateView):
+    redirect_url = '/product_search/view/{id}/'
+    template_name = "charts.html"
+
+    def get(self, request, id):
+        price_chart_data = []
+        sales_chart_data = []
+        skus = Assembly.objects.get(id=id).skus.all()
+        last_datas = Last30DaysData.objects.filter(sku__in=skus).select_related("sku")
+        all_date = self.get_all_date(last_date=last_datas[0].date_update)
+        for idx, data in enumerate(last_datas):
+            price_data = LineChartData(label=data.sku.sku, data=data.price_graph)
+            sales_data = LineChartData(label=data.sku.sku, data=data.graph)
+            price_data.set_color(idx)
+            sales_data.set_color(idx)
+            price_chart_data.append(price_data.dict())
+            sales_chart_data.append(sales_data.dict())
+        return render(request, self.template_name, context={
+            "labels": all_date,
+            "price_data": price_chart_data,
+            "sales_data": sales_chart_data
+        })
+
+    def get_all_date(self, last_date):
+        dates = []
+        d1 = last_date - datetime.timedelta(days=30)  # начальная дата
+        d2 = last_date  # конечная дата
+        delta = d2 - d1  # timedelta
+        if delta.days <= 0:
+            print("Ругаемся и выходим")
+        for i in range(delta.days + 1):
+            dates.append(str(d1 + datetime.timedelta(days=i)))
+        return dates

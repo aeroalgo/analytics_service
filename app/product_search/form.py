@@ -23,10 +23,10 @@ class AddSku(forms.Form):
 
 class SelectDeleteSku(forms.Form):
     prefix = 'del_sku'
-    skus = forms.IntegerField(
+    skus = forms.JSONField(
         label='', widget=forms.SelectMultiple({
             "class": "js-example-basic-multiple w-100",
-        })
+        }), required=False
     )
 
 
@@ -124,7 +124,7 @@ class CreateAssemblyForm(forms.Form):
 
 
 class EditingAssembly(forms.Form):
-    prefix = 'editing'
+    prefix = 'edit_assembly'
     my_default_errors = {
         'required': "Это поле обязательно",
         'invalid': "Введите корректный/корректные sku"
