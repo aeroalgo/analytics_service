@@ -8,7 +8,7 @@ from dateutil.rrule import rrule, MONTHLY
 from app.product_search.tasks.mixins import ParseSkuMixin
 from app.common.async_task_interface.interface import ProcessAsyncTask
 from app.product_search.tasks.maincrawler import Pool, ExtractData, Task
-from app.product_search.models import ProductProperty, Product, PeriodData, Last30DaysData, Categories
+from app.product_search.models import ProductProperty, Product, PeriodData, Last30DaysData, Categories, ProductPhoto
 
 
 class LoadData(ParseSkuMixin):
@@ -34,8 +34,8 @@ class LoadData(ParseSkuMixin):
         item = response.get("data")[0]
         source, _ = Categories.objects.get_or_create(name=item.get("category"))
         product = Product.objects.get(sku=cd_kwargs.get("item_id"))
-        exist = Last30DaysData.objects.filter(sku=cd_kwargs.get("item_id"))
-
+        exist = Last30DaysData.objects.filter(sku=product.id)
+        exist_photo = ProductPhoto.objects.filter(sku=product.id)
         if exist:
             instance = exist[0]
         else:
@@ -46,6 +46,7 @@ class LoadData(ParseSkuMixin):
         instance.final_price_average = item.get("final_price_average")
         instance.sales = item.get("sales")
         instance.rating = item.get("rating")
+        instance.date_update = datetime.datetime.now().date()
         instance.comments = item.get("comments")
         instance.category = source
         instance.last_price = item.get("final_price")
@@ -55,6 +56,14 @@ class LoadData(ParseSkuMixin):
         instance.most_sales = self.most_sales(graph=item.get("graph"), price_graph=item.get("price_graph"))
         now = datetime.datetime.now().date()
         data = Last30DaysData.objects.filter(sku_id=product.id, date_update=now)
+        if exist_photo:
+            instance_photo = exist_photo[0]
+        else:
+            instance_photo = ProductPhoto()
+        instance_photo.sku = product
+        instance_photo.link = cd_kwargs.get('item_photo_url')
+        instance_photo.filename = cd_kwargs.get('item_photo_url').split("/")[-1]
+        instance_photo.get_remote_image()
         if not data:
             instance.save()
 
@@ -72,6 +81,7 @@ class ParseSkuWB(ExtractData, ParseSkuMixin):
         item_brand = item.get('brand')
         item_id = item.get('id')
         item_first_date = item.get('first_date')
+        item_photo_url = response.get('photos')[0].get('f')
         dates = self.get_period_date(item_first_date)
         NEXT_URL = 'https://mpstats.io/api/wb/get/brand?d1={d1}&d2={d2}&path={item_brand}'
         logger.info(response)
@@ -82,6 +92,7 @@ class ParseSkuWB(ExtractData, ParseSkuMixin):
 
         cd_kwargs = {
             "item_id": item_id,
+            "item_photo_url": "https:" + item_photo_url,
             "d1": d1,
             "d2": d2
         }

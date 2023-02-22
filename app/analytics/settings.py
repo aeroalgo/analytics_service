@@ -154,6 +154,10 @@ RABBITMQ_URL = "amqp://analytics:analytics@rabbitmq:5672//analytics"
 
 LANGUAGE_CODE = 'en-us'
 
+MEDIA_ROOT = os.path.join(BASE_DIR, 'media/')  # 'data' is my media folder
+
+MEDIA_URL = '/media/'
+
 TIME_ZONE = 'Europe/Moscow'
 
 USE_I18N = True

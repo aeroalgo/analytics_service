@@ -1,9 +1,11 @@
 import datetime
-
+import os
+from urllib import request
 from django.db import models
 from django.utils import timezone
+from django.core.files import File
 from app.login.models import UserProfile
-from django.contrib.postgres.fields import JSONField
+
 
 class Product(models.Model):
     MP_WB = 1
@@ -158,3 +160,24 @@ class Last30DaysData(models.Model):
     name = models.TextField(
         verbose_name="Наименование позиции", blank=True, null=True
     )
+
+
+def image_path(instance, filename):
+    # file will be uploaded to MEDIA_ROOT/product/id/<filename>
+    return 'product/{0}/{1}'.format(instance.sku.id, filename)
+
+
+class ProductPhoto(models.Model):
+    sku = models.ForeignKey(Product, verbose_name="Фото sku", on_delete=models.CASCADE, related_name="photo")
+    link = models.TextField(verbose_name="Ссылка на фото", blank=True, null=True)
+    photo = models.ImageField(verbose_name="Фото", blank=True, null=True, upload_to=image_path)
+    filename = models.TextField(verbose_name="Имя файла", blank=True, null=True)
+
+    def get_remote_image(self):
+        if self.link and not self.photo:
+            result = request.urlretrieve(self.link)
+            self.photo.save(
+                os.path.basename(self.link),
+                File(open(result[0], 'rb'))
+            )
+            self.save()

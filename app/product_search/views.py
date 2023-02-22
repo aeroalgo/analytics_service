@@ -1,6 +1,7 @@
 from typing import List
 from dateutil.rrule import rrule, MONTHLY
 import datetime
+from django import forms
 from django.shortcuts import render
 from django.forms import formset_factory
 from django.http import HttpResponseRedirect
@@ -9,14 +10,19 @@ from django.views.generic import TemplateView
 from app.product_search.charts import LineChartData
 from app.product_search.tasks.load_pruduct import GetSku
 from app.product_search.test_async_task import GeneratePollReport
-from app.product_search.models import Product, ProductProperty, Assembly, Last30DaysData, PeriodData
+from app.product_search.models import Product, ProductProperty, Assembly, Last30DaysData, PeriodData, ProductPhoto
 from app.product_search.form import AddSku, SelectMP, EditingPropertyProduct, ReadonlyPropertyProduct, \
     CreateAssemblyForm, SelectDeleteSku, EditingAssembly
 
 
-class AddProduct:
-    def add_new_sku(self, new_skus, form_market):
-        """Функция добавляет новые sku которых нет в базе"""
+class ProductUtils:
+    def add_new_sku(self, new_skus: List, form_market: forms) -> bool:
+        """
+        Функция добавляет новые sku которых нет в базе
+        :param new_skus: sku
+        :param form_market: форма
+        :return: Возвращает булевое значение если была произведена вставка
+        """
         add_new_sku = []
         if new_skus:
             for sku in new_skus:
@@ -28,11 +34,26 @@ class AddProduct:
             Product.objects.bulk_create(add_new_sku)
             return True
 
-    def update_property_in_assembly(self):
-        pass
+    def line_break_symbol(self, max_chars: int, text: str) -> str:
+        """
+        Разделяет текст на несколько строк (триггер max_chars)
+        :param max_chars: Максимальное количество символов в строке
+        :param text: Строка с вариантом ответа
+        :return: Возвращает отформатированную строку варианта ответа
+        """
 
+        words_answers = text.replace("/", "").strip().split(' ')
+        new_answer = ''
+        chars_words = 0
+        for idx, word in enumerate(words_answers):
+            chars_words += len(word)
+            new_answer += word + " "
+            if chars_words >= max_chars:
+                new_answer += "<br>"
+                chars_words = 0
+        return new_answer
 
-class SearchProduct(TemplateView, AddProduct):
+class SearchProduct(TemplateView, ProductUtils):
     template_name = "add_product.html"
     add_sku = AddSku()
     select_mp = SelectMP()
@@ -174,7 +195,7 @@ class CreateAssembly(TemplateView):
             return instance_assembly.id
 
 
-class ViewTableSkus(TemplateView):
+class ViewTableSkus(TemplateView, ProductUtils):
     template_name = "view_table_skus.html"
 
     def get(self, request, id):
@@ -216,18 +237,13 @@ class ViewTableSkus(TemplateView):
             11: 1,
             12: 0,
         }
-        count = 0
         for idx_sku, sku in enumerate(skus):
             sku_id = sku.id
             period_items_data = PeriodData.objects.filter(sku_id=sku_id).select_related("sku").order_by("date_start")
             property = sku.property.filter(assembly=id)
 
-            insert_idx = count + idx_sku
-            year = ""
+            insert_idx = idx_sku
             for idx_item, item in enumerate(period_items_data):
-                # if year != "" and year != item.date_start.year:
-                #     count += 1
-                # year = item.date_start.year
                 item_data_default = {
                     "revenue": None,
                     "lost_profit": None,
@@ -268,22 +284,27 @@ class ViewTableSkus(TemplateView):
                 if data:
                     quarter.get(PeriodData.MONTH_QUARTER.get(item.date_start.month)).append(data.copy())
                 else:
-                    if len(quarter.get(PeriodData.MONTH_QUARTER.get(item.date_start.month)))-1 > insert_idx:
-                        insert_idx = len(quarter.get(PeriodData.MONTH_QUARTER.get(item.date_start.month)))-1
+                    len_data = len(quarter.get(PeriodData.MONTH_QUARTER.get(item.date_start.month)))
+                    if len_data - 1 > insert_idx or len_data - 1 < insert_idx:
+                        insert_idx = len(quarter.get(PeriodData.MONTH_QUARTER.get(item.date_start.month))) - 1
                     quarter.get(PeriodData.MONTH_QUARTER.get(item.date_start.month))[insert_idx].append(
                         item_data.copy())
-                    insert_idx = count + idx_sku
+                    insert_idx = idx_sku
+
             skus_id.append(sku_id)
 
         items_data = Last30DaysData.objects.filter(sku_id__in=skus_id).select_related("sku")
         for item in items_data:
+            photo = ProductPhoto.objects.get(sku=item.id)
             property = item.sku.property.filter(assembly=id)
+            print(self.line_break_symbol(10, item.name))
             pruduct_30_days.append({
                 "last_update": item.date_update,
                 "mp": dict(Product.MARKETS).get(item.sku.mp),
                 "competition": dict(ProductProperty.COMPETITIONS).get(property[0].competition),
+                "img": photo.photo,
                 "article": item.sku.sku,
-                "name": item.name.replace("/", "<br>"),
+                "name": self.line_break_symbol(10, item.name),
                 "last_price": item.last_price,
                 "most_sales": round(item.most_sales, 1),
                 # "lost_profit": item.lost_profit,
@@ -324,7 +345,7 @@ class UpdateTable(TemplateView):
         return HttpResponseRedirect(self.redirect_url.format(id=id))
 
 
-class EditTable(TemplateView, AddProduct):
+class EditTable(TemplateView, ProductUtils):
     redirect_url = '/product_search/view/{id}/'
     template_name = "edit_table.html"
     add_sku = AddSku()

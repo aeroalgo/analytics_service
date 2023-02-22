@@ -116,9 +116,8 @@ class ExtractData:
     """
     content_path = ''
 
-    @classmethod
-    def download_content(cls, url):
-        full_content_path = cls.content_path + url.split("/")[-1]
+    def download_content(self, url):
+        full_content_path = self.content_path + url.split("/")[-1]
         with open(full_content_path, "wb") as f:
             f.write(requests.get(url).content)
             print('download successful: ', full_content_path)
@@ -173,7 +172,6 @@ class Pool(AsyncTask):
             for _ in range(self.max_rate):
                 # print('Queue size', self._queue.qsize())
                 if self._queue.qsize() != 0:
-                    count_no_task = 0
                     async with self._sem:
                         task = await self._queue.get()
                         task.tid = count
@@ -183,6 +181,8 @@ class Pool(AsyncTask):
                         count += 1
                     await asyncio.sleep(0)
                 else:
+                    # print('Active tasks count:',
+                    #       len([task for task in asyncio.all_tasks(self._loop) if not task.done()]))
                     await asyncio.sleep(0.1)
 
     async def _worker(self, task: Task):

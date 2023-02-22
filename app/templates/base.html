@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="en" xmlns="http://www.w3.org/1999/html">
+<html lang="en">
 
 <head>
     {% include "head.html" %}
@@ -203,24 +203,9 @@
         {% include "side_bar.html" %}
         <!-- partial -->
         <div class="main-panel">
-            <div class="content-wrapper">
-                <div class="row">
-                    <div class="col-md-12 grid-margin">
-                        <div class="row">
-                            <div class="col-md-6 grid-margin stretch-card">
-                                <div class="card">
-                                    <div class="card-body">
-                                        <canvas id="price_chart"></canvas>
-                                    </div>
-                                    <div class="card-body">
-                                        <canvas id="sales_chart"></canvas>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            </div>
+            {% block content %}
+
+            {% endblock %}
             <!-- content-wrapper ends -->
             <!-- partial:partials/_footer.html -->
             <footer class="footer">
@@ -237,138 +222,11 @@
             </footer>
             <!-- partial -->
         </div>
-        <!-- main-panel ends -->
     </div>
+    <!-- main-panel ends -->
 </div>
 <!-- page-body-wrapper ends -->
 {% include "scripts.html" %}
-<script>
-
-{% block javascript %}
-  var ctx = document.getElementById( "price_chart" );
-    var myChart = new Chart( ctx, {
-        type: 'line',
-        data: {
-            labels: {{ labels | tojson }},
-            type: 'line',
-            defaultFontFamily: 'Montserrat',
-            datasets: {{ price_data | tojson }}
-        },
-        options: {
-            responsive: true,
-            tooltips: {
-                mode: 'index',
-                titleFontSize: 12,
-                titleFontColor: '#000',
-                bodyFontColor: '#000',
-                backgroundColor: '#fff',
-                titleFontFamily: 'Montserrat',
-                bodyFontFamily: 'Montserrat',
-                cornerRadius: 3,
-                intersect: false,
-            },
-            legend: {
-                display: true,
-                labels: {
-                    usePointStyle: true,
-                    fontFamily: 'Montserrat',
-                },
-            },
-            scales: {
-                xAxes: [ {
-                    display: true,
-                    gridLines: {
-                        display: false,
-                        drawBorder: false
-                    },
-                    scaleLabel: {
-                        display: false,
-                        labelString: 'Month'
-                    }
-                        } ],
-                yAxes: [ {
-                    display: true,
-                    gridLines: {
-                        display: false,
-                        drawBorder: false
-                    },
-                    scaleLabel: {
-                        display: true,
-                        labelString: 'Value'
-                    }
-                        } ]
-            },
-            title: {
-                display: true,
-                text: 'Цена'
-            }
-        }
-    } );
-
-  var ctx = document.getElementById( "sales_chart" );
-    var myChart = new Chart( ctx, {
-        type: 'line',
-        data: {
-            labels: {{ labels | tojson }},
-            type: 'line',
-            defaultFontFamily: 'Montserrat',
-            datasets: {{ sales_data | tojson }}
-        },
-        options: {
-            responsive: true,
-            tooltips: {
-                mode: 'index',
-                titleFontSize: 12,
-                titleFontColor: '#000',
-                bodyFontColor: '#000',
-                backgroundColor: '#fff',
-                titleFontFamily: 'Montserrat',
-                bodyFontFamily: 'Montserrat',
-                cornerRadius: 3,
-                intersect: false,
-            },
-            legend: {
-                display: true,
-                labels: {
-                    usePointStyle: true,
-                    fontFamily: 'Montserrat',
-                },
-            },
-            scales: {
-                xAxes: [ {
-                    display: true,
-                    gridLines: {
-                        display: false,
-                        drawBorder: false
-                    },
-                    scaleLabel: {
-                        display: false,
-                        labelString: 'Month'
-                    }
-                        } ],
-                yAxes: [ {
-                    display: true,
-                    gridLines: {
-                        display: false,
-                        drawBorder: false
-                    },
-                    scaleLabel: {
-                        display: true,
-                        labelString: 'Value'
-                    }
-                        } ]
-            },
-            title: {
-                display: true,
-                text: 'Продажи'
-            }
-        }
-    } );
-
-{% endblock %}
-
-
-</script>
 </body>
 
 </html>
