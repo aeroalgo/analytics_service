@@ -42,14 +42,19 @@
                                     <th>Последняя<br>цена</th>
                                     <th>Цена 80%<br>продаж</th>
                                     <th>Выручка<br>за 30 дней</th>
-                                    <th>Средняя цена<br>за 30 дней</th>
+                                    <th>Средняя<br>за 30 дней</th>
                                     <th>Валовая<br>прибыль</th>
                                     <th>Средняя<br>в выдаче</th>
-                                    <th>Дата первого<br>появления</th>
+                                    <th>Дата<br>появления</th>
                                     <th>Стартовая<br>цена</th>
                                     <th>Кол-во<br>продаж</th>
                                     <th>Рейт</th>
                                     <th>Коммент</th>
+                                    {% if clothes %}
+                                    <th>Размер</th>
+                                    <th>Продажи</th>
+                                    <th>Остатки</th>
+                                    {% endif %}
                                 </tr>
                                 </thead>
                                 <tbody>
@@ -59,7 +64,11 @@
                                     {% if value is number %}
                                     <td>{{ '{0:,}'.format(value).replace(',', ' ') }}</td>
                                     {% elif key == 'img' %}
+                                    {% if value == " " %}
+                                    <td>{{ value }}</td>
+                                    {% else %}
                                     <td><img src="{{ MEDIA_URL }}{{ value }}" alt="image alt text"/></td>
+                                    {% endif %}
                                     {% else %}
                                     <td>{{ value|safe }}</td>
                                     {% endif %}

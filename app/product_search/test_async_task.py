@@ -1,28 +1,144 @@
-import time
-import traceback
+x = {'2023-01-22': {'40-42 (XS)': {'sales': 94, 'balance': 709, 'size_name': '40-42', 'size_origin': 'XS'},
+                    '42-44 (S)': {'sales': 128, 'balance': 868, 'size_name': '42-44', 'size_origin': 'S'},
+                    '44-46 (M)': {'sales': 97, 'balance': 1000, 'size_name': '44-46', 'size_origin': 'M'},
+                    '46-48 (L)': {'sales': 65, 'balance': 763, 'size_name': '46-48', 'size_origin': 'L'}},
+     '2023-01-23': {'40-42 (XS)': {'sales': 95, 'balance': 717, 'size_name': '40-42', 'size_origin': 'XS'},
+                    '42-44 (S)': {'sales': 262, 'balance': 620, 'size_name': '42-44', 'size_origin': 'S'},
+                    '44-46 (M)': {'sales': 178, 'balance': 832, 'size_name': '44-46', 'size_origin': 'M'},
+                    '46-48 (L)': {'sales': 73, 'balance': 697, 'size_name': '46-48', 'size_origin': 'L'}},
+     '2023-01-24': {'40-42 (XS)': {'sales': 110, 'balance': 655, 'size_name': '40-42', 'size_origin': 'XS'},
+                    '42-44 (S)': {'sales': 135, 'balance': 708, 'size_name': '42-44', 'size_origin': 'S'},
+                    '44-46 (M)': {'sales': 94, 'balance': 890, 'size_name': '44-46', 'size_origin': 'M'},
+                    '46-48 (L)': {'sales': 85, 'balance': 620, 'size_name': '46-48', 'size_origin': 'L'}},
+     '2023-01-25': {'40-42 (XS)': {'sales': 89, 'balance': 782, 'size_name': '40-42', 'size_origin': 'XS'},
+                    '42-44 (S)': {'sales': 87, 'balance': 1271, 'size_name': '42-44', 'size_origin': 'S'},
+                    '44-46 (M)': {'sales': 136, 'balance': 1081, 'size_name': '44-46', 'size_origin': 'M'},
+                    '46-48 (L)': {'sales': 127, 'balance': 629, 'size_name': '46-48', 'size_origin': 'L'}},
+     '2023-01-26': {'40-42 (XS)': {'sales': 875, 'balance': 696, 'size_name': '40-42', 'size_origin': 'XS'},
+                    '42-44 (S)': {'sales': 1401, 'balance': 1155, 'size_name': '42-44', 'size_origin': 'S'},
+                    '44-46 (M)': {'sales': 1192, 'balance': 984, 'size_name': '44-46', 'size_origin': 'M'},
+                    '46-48 (L)': {'sales': 703, 'balance': 563, 'size_name': '46-48', 'size_origin': 'L'}},
+     '2023-01-27': {'40-42 (XS)': {'sales': 91, 'balance': 806, 'size_name': '40-42', 'size_origin': 'XS'},
+                    '42-44 (S)': {'sales': 96, 'balance': 1236, 'size_name': '42-44', 'size_origin': 'S'},
+                    '44-46 (M)': {'sales': 115, 'balance': 880, 'size_name': '44-46', 'size_origin': 'M'},
+                    '46-48 (L)': {'sales': 96, 'balance': 473, 'size_name': '46-48', 'size_origin': 'L'}},
+     '2023-01-28': {'40-42 (XS)': {'sales': 122, 'balance': 696, 'size_name': '40-42', 'size_origin': 'XS'},
+                    '42-44 (S)': {'sales': 119, 'balance': 1130, 'size_name': '42-44', 'size_origin': 'S'},
+                    '44-46 (M)': {'sales': 118, 'balance': 772, 'size_name': '44-46', 'size_origin': 'M'},
+                    '46-48 (L)': {'sales': 89, 'balance': 395, 'size_name': '46-48', 'size_origin': 'L'}},
+     '2023-01-29': {'40-42 (XS)': {'sales': 126, 'balance': 643, 'size_name': '40-42', 'size_origin': 'XS'},
+                    '42-44 (S)': {'sales': 152, 'balance': 1160, 'size_name': '42-44', 'size_origin': 'S'},
+                    '44-46 (M)': {'sales': 125, 'balance': 1051, 'size_name': '44-46', 'size_origin': 'M'},
+                    '46-48 (L)': {'sales': 107, 'balance': 539, 'size_name': '46-48', 'size_origin': 'L'}},
+     '2023-01-30': {'40-42 (XS)': {'sales': 111, 'balance': 546, 'size_name': '40-42', 'size_origin': 'XS'},
+                    '42-44 (S)': {'sales': 142, 'balance': 1035, 'size_name': '42-44', 'size_origin': 'S'},
+                    '44-46 (M)': {'sales': 135, 'balance': 926, 'size_name': '44-46', 'size_origin': 'M'},
+                    '46-48 (L)': {'sales': 98, 'balance': 452, 'size_name': '46-48', 'size_origin': 'L'}},
+     '2023-01-31': {'40-42 (XS)': {'sales': 180, 'balance': 441, 'size_name': '40-42', 'size_origin': 'XS'},
+                    '42-44 (S)': {'sales': 151, 'balance': 1137, 'size_name': '42-44', 'size_origin': 'S'},
+                    '44-46 (M)': {'sales': 118, 'balance': 818, 'size_name': '44-46', 'size_origin': 'M'},
+                    '46-48 (L)': {'sales': 213, 'balance': 391, 'size_name': '46-48', 'size_origin': 'L'}},
+     '2023-02-01': {'40-42 (XS)': {'sales': 141, 'balance': 610, 'size_name': '40-42', 'size_origin': 'XS'},
+                    '42-44 (S)': {'sales': 164, 'balance': 988, 'size_name': '42-44', 'size_origin': 'S'},
+                    '44-46 (M)': {'sales': 191, 'balance': 789, 'size_name': '44-46', 'size_origin': 'M'},
+                    '46-48 (L)': {'sales': 85, 'balance': 667, 'size_name': '46-48', 'size_origin': 'L'}},
+     '2023-02-02': {'40-42 (XS)': {'sales': 115, 'balance': 609, 'size_name': '40-42', 'size_origin': 'XS'},
+                    '42-44 (S)': {'sales': 166, 'balance': 988, 'size_name': '42-44', 'size_origin': 'S'},
+                    '44-46 (M)': {'sales': 130, 'balance': 709, 'size_name': '44-46', 'size_origin': 'M'},
+                    '46-48 (L)': {'sales': 106, 'balance': 566, 'size_name': '46-48', 'size_origin': 'L'}},
+     '2023-02-03': {'40-42 (XS)': {'sales': 155, 'balance': 464, 'size_name': '40-42', 'size_origin': 'XS'},
+                    '42-44 (S)': {'sales': 170, 'balance': 909, 'size_name': '42-44', 'size_origin': 'S'},
+                    '44-46 (M)': {'sales': 135, 'balance': 585, 'size_name': '44-46', 'size_origin': 'M'},
+                    '46-48 (L)': {'sales': 103, 'balance': 535, 'size_name': '46-48', 'size_origin': 'L'}},
+     '2023-02-04': {'40-42 (XS)': {'sales': 126, 'balance': 564, 'size_name': '40-42', 'size_origin': 'XS'},
+                    '42-44 (S)': {'sales': 128, 'balance': 1129, 'size_name': '42-44', 'size_origin': 'S'},
+                    '44-46 (M)': {'sales': 114, 'balance': 580, 'size_name': '44-46', 'size_origin': 'M'},
+                    '46-48 (L)': {'sales': 94, 'balance': 525, 'size_name': '46-48', 'size_origin': 'L'}},
+     '2023-02-05': {'40-42 (XS)': {'sales': 173, 'balance': 403, 'size_name': '40-42', 'size_origin': 'XS'},
+                    '42-44 (S)': {'sales': 431, 'balance': 714, 'size_name': '42-44', 'size_origin': 'S'},
+                    '44-46 (M)': {'sales': 319, 'balance': 515, 'size_name': '44-46', 'size_origin': 'M'},
+                    '46-48 (L)': {'sales': 86, 'balance': 448, 'size_name': '46-48', 'size_origin': 'L'}},
+     '2023-02-06': {'40-42 (XS)': {'sales': 115, 'balance': 551, 'size_name': '40-42', 'size_origin': 'XS'},
+                    '42-44 (S)': {'sales': 287, 'balance': 1080, 'size_name': '42-44', 'size_origin': 'S'},
+                    '44-46 (M)': {'sales': 90, 'balance': 521, 'size_name': '44-46', 'size_origin': 'M'},
+                    '46-48 (L)': {'sales': 235, 'balance': 372, 'size_name': '46-48', 'size_origin': 'L'}},
+     '2023-02-07': {'40-42 (XS)': {'sales': 113, 'balance': 512, 'size_name': '40-42', 'size_origin': 'XS'},
+                    '42-44 (S)': {'sales': 155, 'balance': 942, 'size_name': '42-44', 'size_origin': 'S'},
+                    '44-46 (M)': {'sales': 112, 'balance': 428, 'size_name': '44-46', 'size_origin': 'M'},
+                    '46-48 (L)': {'sales': 87, 'balance': 416, 'size_name': '46-48', 'size_origin': 'L'}},
+     '2023-02-08': {'40-42 (XS)': {'sales': 117, 'balance': 557, 'size_name': '40-42', 'size_origin': 'XS'},
+                    '42-44 (S)': {'sales': 140, 'balance': 825, 'size_name': '42-44', 'size_origin': 'S'},
+                    '44-46 (M)': {'sales': 121, 'balance': 317, 'size_name': '44-46', 'size_origin': 'M'},
+                    '46-48 (L)': {'sales': 96, 'balance': 527, 'size_name': '46-48', 'size_origin': 'L'}},
+     '2023-02-09': {'40-42 (XS)': {'sales': 108, 'balance': 463, 'size_name': '40-42', 'size_origin': 'XS'},
+                    '42-44 (S)': {'sales': 144, 'balance': 766, 'size_name': '42-44', 'size_origin': 'S'},
+                    '44-46 (M)': {'sales': 89, 'balance': 302, 'size_name': '44-46', 'size_origin': 'M'},
+                    '46-48 (L)': {'sales': 74, 'balance': 466, 'size_name': '46-48', 'size_origin': 'L'}},
+     '2023-02-10': {'40-42 (XS)': {'sales': 93, 'balance': 585, 'size_name': '40-42', 'size_origin': 'XS'},
+                    '42-44 (S)': {'sales': 127, 'balance': 665, 'size_name': '42-44', 'size_origin': 'S'},
+                    '44-46 (M)': {'sales': 78, 'balance': 243, 'size_name': '44-46', 'size_origin': 'M'},
+                    '46-48 (L)': {'sales': 50, 'balance': 488, 'size_name': '46-48', 'size_origin': 'L'}},
+     '2023-02-11': {'40-42 (XS)': {'sales': 94, 'balance': 631, 'size_name': '40-42', 'size_origin': 'XS'},
+                    '42-44 (S)': {'sales': 103, 'balance': 846, 'size_name': '42-44', 'size_origin': 'S'},
+                    '44-46 (M)': {'sales': 58, 'balance': 568, 'size_name': '44-46', 'size_origin': 'M'},
+                    '46-48 (L)': {'sales': 45, 'balance': 580, 'size_name': '46-48', 'size_origin': 'L'}},
+     '2023-02-12': {'40-42 (XS)': {'sales': 84, 'balance': 700, 'size_name': '40-42', 'size_origin': 'XS'},
+                    '42-44 (S)': {'sales': 106, 'balance': 754, 'size_name': '42-44', 'size_origin': 'S'},
+                    '44-46 (M)': {'sales': 71, 'balance': 692, 'size_name': '44-46', 'size_origin': 'M'},
+                    '46-48 (L)': {'sales': 44, 'balance': 630, 'size_name': '46-48', 'size_origin': 'L'}},
+     '2023-02-13': {'40-42 (XS)': {'sales': 106, 'balance': 664, 'size_name': '40-42', 'size_origin': 'XS'},
+                    '42-44 (S)': {'sales': 133, 'balance': 780, 'size_name': '42-44', 'size_origin': 'S'},
+                    '44-46 (M)': {'sales': 78, 'balance': 776, 'size_name': '44-46', 'size_origin': 'M'},
+                    '46-48 (L)': {'sales': 54, 'balance': 838, 'size_name': '46-48', 'size_origin': 'L'}},
+     '2023-02-14': {'40-42 (XS)': {'sales': 110, 'balance': 779, 'size_name': '40-42', 'size_origin': 'XS'},
+                    '42-44 (S)': {'sales': 84, 'balance': 974, 'size_name': '42-44', 'size_origin': 'S'},
+                    '44-46 (M)': {'sales': 79, 'balance': 900, 'size_name': '44-46', 'size_origin': 'M'},
+                    '46-48 (L)': {'sales': 52, 'balance': 990, 'size_name': '46-48', 'size_origin': 'L'}},
+     '2023-02-15': {'40-42 (XS)': {'sales': 126, 'balance': 663, 'size_name': '40-42', 'size_origin': 'XS'},
+                    '42-44 (S)': {'sales': 137, 'balance': 853, 'size_name': '42-44', 'size_origin': 'S'},
+                    '44-46 (M)': {'sales': 91, 'balance': 820, 'size_name': '44-46', 'size_origin': 'M'},
+                    '46-48 (L)': {'sales': 56, 'balance': 951, 'size_name': '46-48', 'size_origin': 'L'}},
+     '2023-02-16': {'40-42 (XS)': {'sales': 89, 'balance': 729, 'size_name': '40-42', 'size_origin': 'XS'},
+                    '42-44 (S)': {'sales': 119, 'balance': 1195, 'size_name': '42-44', 'size_origin': 'S'},
+                    '44-46 (M)': {'sales': 83, 'balance': 1140, 'size_name': '44-46', 'size_origin': 'M'},
+                    '46-48 (L)': {'sales': 49, 'balance': 1108, 'size_name': '46-48', 'size_origin': 'L'}},
+     '2023-02-17': {'40-42 (XS)': {'sales': 126, 'balance': 764, 'size_name': '40-42', 'size_origin': 'XS'},
+                    '42-44 (S)': {'sales': 107, 'balance': 1598, 'size_name': '42-44', 'size_origin': 'S'},
+                    '44-46 (M)': {'sales': 76, 'balance': 1184, 'size_name': '44-46', 'size_origin': 'M'},
+                    '46-48 (L)': {'sales': 164, 'balance': 1076, 'size_name': '46-48', 'size_origin': 'L'}},
+     '2023-02-18': {'40-42 (XS)': {'sales': 110, 'balance': 771, 'size_name': '40-42', 'size_origin': 'XS'},
+                    '42-44 (S)': {'sales': 120, 'balance': 1778, 'size_name': '42-44', 'size_origin': 'S'},
+                    '44-46 (M)': {'sales': 70, 'balance': 1430, 'size_name': '44-46', 'size_origin': 'M'},
+                    '46-48 (L)': {'sales': 36, 'balance': 1442, 'size_name': '46-48', 'size_origin': 'L'}},
+     '2023-02-19': {'40-42 (XS)': {'sales': 104, 'balance': 678, 'size_name': '40-42', 'size_origin': 'XS'},
+                    '42-44 (S)': {'sales': 159, 'balance': 1635, 'size_name': '42-44', 'size_origin': 'S'},
+                    '44-46 (M)': {'sales': 88, 'balance': 1493, 'size_name': '44-46', 'size_origin': 'M'},
+                    '46-48 (L)': {'sales': 56, 'balance': 1579, 'size_name': '46-48', 'size_origin': 'L'}},
+     '2023-02-20': {'40-42 (XS)': {'sales': 103, 'balance': 638, 'size_name': '40-42', 'size_origin': 'XS'},
+                    '42-44 (S)': {'sales': 137, 'balance': 1616, 'size_name': '42-44', 'size_origin': 'S'},
+                    '44-46 (M)': {'sales': 86, 'balance': 1420, 'size_name': '44-46', 'size_origin': 'M'},
+                    '46-48 (L)': {'sales': 64, 'balance': 1524, 'size_name': '46-48', 'size_origin': 'L'}},
+     '2023-02-21': {'40-42 (XS)': {'sales': 104, 'balance': 551, 'size_name': '40-42', 'size_origin': 'XS'},
+                    '42-44 (S)': {'sales': 116, 'balance': 1815, 'size_name': '42-44', 'size_origin': 'S'},
+                    '44-46 (M)': {'sales': 93, 'balance': 1500, 'size_name': '44-46', 'size_origin': 'M'},
+                    '46-48 (L)': {'sales': 51, 'balance': 1686, 'size_name': '46-48', 'size_origin': 'L'}}}
 
-from django.core.cache import cache
+result = {
 
-from app.common.async_task_interface.tasks import AsyncTask
+}
 
+for val in x.values():
+    for size, data in val.items():
+        if size in result.keys():
+            for key, values in data.items():
+                if key in ('sales', 'balance'):
+                    result.get(size).get(key).append(values)
+        else:
+            result[size] = {
+                "sales": [data.get("sales")],
+                "balance": [data.get("balance")],
+                "size_name": data.get("size_name"),
+                "size_origin": data.get("size_origin"),
+            }
 
-class GeneratePollReport(AsyncTask):
-    """
-    Фоновая задача для генерирования отчета
-    """
-
-    def __init__(self, *args, **kwargs):
-        self.report_type = kwargs.get("report_type", "XLS")
-        self.report_format = kwargs.get("report_format", 1)
-        super().__init__(param={
-            "report_type": self.report_type,
-            "report_format": self.report_format
-        })
-
-    def process(self):
-        for i in range(100):
-            time.sleep(5)
-            print(i)
-
-    def finalize(self):
-        return True
+print(result)

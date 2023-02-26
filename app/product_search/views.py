@@ -1,21 +1,41 @@
-from typing import List
-from dateutil.rrule import rrule, MONTHLY
 import datetime
+from typing import List
 from django import forms
 from django.shortcuts import render
-from django.forms import formset_factory
+from django.http import HttpResponse, HttpRequest
 from django.http import HttpResponseRedirect
 from django.views.generic import TemplateView
-
 from app.product_search.charts import LineChartData
 from app.product_search.tasks.load_pruduct import GetSku
-from app.product_search.test_async_task import GeneratePollReport
 from app.product_search.models import Product, ProductProperty, Assembly, Last30DaysData, PeriodData, ProductPhoto
 from app.product_search.form import AddSku, SelectMP, EditingPropertyProduct, ReadonlyPropertyProduct, \
     CreateAssemblyForm, SelectDeleteSku, EditingAssembly
 
 
 class ProductUtils:
+    default_structure = {
+        "last_update": " ",
+        "mp": " ",
+        "competition": " ",
+        "img": " ",
+        "article": " ",
+        "name": " ",
+        "last_price": " ",
+        "most_sales": " ",
+        # "lost_profit": item.lost_profit,
+        "revenue": " ",
+        "final_price_average": " ",
+        # Валовая прибыль нет в описании
+        "val_price": " ",
+        # Средняя позиция в выдаче не понятно как считать
+        "categories_pos": " ",
+        "first_date": " ",
+        "start_price": " ",
+        "sales": " ",
+        "rating": " ",
+        "comments": " ",
+    }
+
     def add_new_sku(self, new_skus: List, form_market: forms) -> bool:
         """
         Функция добавляет новые sku которых нет в базе
@@ -53,13 +73,57 @@ class ProductUtils:
                 chars_words = 0
         return new_answer
 
+    def get_table_data(self, id, skus_id: List, clothes: bool = False):
+        pruduct_30_days = []
+        prefetch_table = ["photo", "property", "days_data"]
+        if clothes:
+            prefetch_table.append("size")
+        items_data = Product.objects.filter(id__in=skus_id).prefetch_related(*prefetch_table)
+        for item in items_data:
+            default = self.default_structure.copy()
+            default["last_update"] = item.days_data.first().date_update
+            default["mp"] = dict(Product.MARKETS).get(item.mp)
+            default["competition"] = dict(ProductProperty.COMPETITIONS).get(
+                item.property.filter(assembly_id=id, sku_id=item.id).first().competition).replace(" ", "<br>")
+            default["img"] = item.photo.first().photo if item.photo else None
+            default["article"] = item.sku
+            default["name"] = self.line_break_symbol(10, item.days_data.first().name)
+            default["last_price"] = item.days_data.first().last_price
+            default["most_sales"] = round(item.days_data.first().most_sales, 1)
+            # "lost_profit": item.lost_profit,
+            default["revenue"] = round(item.days_data.first().revenue, 1)
+            default["final_price_average"] = round(item.days_data.first().final_price_average, 1)
+            # Валовая прибыль нет в описании
+            # Средняя позиция в выдаче не понятно как считать
+            default["first_date"] = item.days_data.first().first_date
+            default["sales"] = item.days_data.first().sales
+            default["rating"] = item.days_data.first().rating
+            default["comments"] = item.days_data.first().comments
+            if clothes:
+                for idx, size in enumerate(item.size.all()):
+                    if idx == 0:
+                        default["size_title"] = size.title.replace(" ", "<br>")
+                        default["size_sales"] = sum(size.sales)
+                        default["size_balance"] = round(sum(size.balance) / len(size.balance), 2)
+                    else:
+                        default = self.default_structure.copy()
+                        default["article"] = item.sku
+                        default["size_title"] = size.title.replace(" ", "<br>")
+                        default["size_sales"] = sum(size.sales)
+                        default["size_balance"] = round(sum(size.balance) / len(size.balance), 2)
+                    pruduct_30_days.append(default.copy())
+            else:
+                pruduct_30_days.append(default.copy())
+        return pruduct_30_days
+
+
 class SearchProduct(TemplateView, ProductUtils):
     template_name = "add_product.html"
     add_sku = AddSku()
     select_mp = SelectMP()
     redirect_url = '/product_search/view/{id}/'
 
-    def get(self, request, id):
+    def get(self, request: HttpRequest, id: int) -> HttpResponse:
         try:
             exist_skus = Assembly.objects.get(id=id).skus.all()
             editing_form, read_only_form = self.get_formsets(id_assembly=id, editing=exist_skus)
@@ -77,7 +141,7 @@ class SearchProduct(TemplateView, ProductUtils):
                 "select_mp": self.select_mp
             })
 
-    def post(self, request, id):
+    def post(self, request: HttpRequest, id: int) -> HttpResponse:
         form_sku = AddSku(request.POST, prefix='sku')
         form_market = SelectMP(request.POST, prefix='mp')
         if form_sku.is_valid() and form_market.is_valid():
@@ -98,7 +162,7 @@ class SearchProduct(TemplateView, ProductUtils):
                         idx=idx))
                     if form_editing.is_valid():
                         product = Product.objects.get(sku=form_editing.cleaned_data['sku'])
-                        x, c = ProductProperty.objects.get_or_create(
+                        obj, _ = ProductProperty.objects.get_or_create(
                             sku=product,
                             competition=form_editing.cleaned_data['competition'], assembly=assembly)
                         read_only_skus.append(form_editing.cleaned_data['sku'])
@@ -134,8 +198,11 @@ class SearchProduct(TemplateView, ProductUtils):
                 "select_mp": form_market
             })
 
-    def get_formsets(self, id_assembly: int, editing: List, read_only: List = [], ):
-        """Формирование наборов форм для частичного редактирования и read_only форм после окончания редактирования"""
+    def get_formsets(self, id_assembly: int, editing: List, read_only: List = []):
+        """
+        Формирование наборов форм для частичного редактирования
+        и read_only форм после окончания редактирования
+        """
         editing_form = []
         read_only = read_only.copy()
         for idx, sku in enumerate(editing):
@@ -168,12 +235,12 @@ class CreateAssembly(TemplateView):
     redirect_url = '/product_search/create/{id}/'
     assembly = CreateAssemblyForm()
 
-    def get(self, request):
+    def get(self, request: HttpRequest):
         return render(request, self.template_name, context={
             "create_assembly": self.assembly,
         })
 
-    def post(self, request):
+    def post(self, request: HttpRequest) -> HttpResponse:
         assembly_data = CreateAssemblyForm(request.POST, prefix="assembly")
         if assembly_data.is_valid():
             # Добавить вариант перехода на уже существующую сборку при вводе существующего имени
@@ -191,6 +258,7 @@ class CreateAssembly(TemplateView):
         if assembly_data.cleaned_data['name'] not in (None, ""):
             instance_assembly = Assembly()
             instance_assembly.name = assembly_data.cleaned_data['name']
+            instance_assembly.type = assembly_data.cleaned_data['type']
             instance_assembly.save()
             return instance_assembly.id
 
@@ -198,17 +266,19 @@ class CreateAssembly(TemplateView):
 class ViewTableSkus(TemplateView, ProductUtils):
     template_name = "view_table_skus.html"
 
-    def get(self, request, id):
+    def get(self, request: HttpRequest, id: int) -> HttpResponse:
         quarter = {
             1: [],
             2: [],
             3: [],
             4: []
         }
-        pruduct_30_days = []
+        clothes = False
         exist_assembly = Assembly.objects.get(id=id)
+        if exist_assembly.type == Assembly.TYPE_CLOTHES:
+            clothes = True
         skus = exist_assembly.skus.all()
-        skus_id = []
+        skus_ids = []
         add_default_start = {
             1: 0,
             2: 1,
@@ -291,37 +361,11 @@ class ViewTableSkus(TemplateView, ProductUtils):
                         item_data.copy())
                     insert_idx = idx_sku
 
-            skus_id.append(sku_id)
+            skus_ids.append(sku_id)
 
-        items_data = Last30DaysData.objects.filter(sku_id__in=skus_id).select_related("sku")
-        for item in items_data:
-            photo = ProductPhoto.objects.get(sku=item.id)
-            property = item.sku.property.filter(assembly=id)
-            print(self.line_break_symbol(10, item.name))
-            pruduct_30_days.append({
-                "last_update": item.date_update,
-                "mp": dict(Product.MARKETS).get(item.sku.mp),
-                "competition": dict(ProductProperty.COMPETITIONS).get(property[0].competition),
-                "img": photo.photo,
-                "article": item.sku.sku,
-                "name": self.line_break_symbol(10, item.name),
-                "last_price": item.last_price,
-                "most_sales": round(item.most_sales, 1),
-                # "lost_profit": item.lost_profit,
-                "revenue": round(item.revenue, 1),
-                "final_price_average": round(item.final_price_average, 1),
-                # Валовая прибыль нет в описании
-                "val_price": None,
-                # Средняя позиция в выдаче не понятно как считать
-                "categories_pos": None,
-                "first_date": item.first_date,
-                "start_price": None,
-                "sales": item.sales,
-                "rating": item.rating,
-                "comments": item.comments,
-            })
+        pruduct_30_days = self.get_table_data(id=id, skus_id=skus_ids, clothes=clothes)
         return render(request, self.template_name, context={
-            "table_30days": pruduct_30_days, "quarter_data": quarter
+            "table_30days": pruduct_30_days, "quarter_data": quarter, "clothes": clothes
         })
 
 
@@ -329,7 +373,7 @@ class UpdateTable(TemplateView):
     redirect_url = '/product_search/view/{id}/'
     template_name = "view_table_skus.html"
 
-    def get(self, request, id):
+    def get(self, request: HttpRequest, id: int) -> HttpResponse:
         exist_assembly = Assembly.objects.filter(id=id).prefetch_related("skus")
         skus = exist_assembly[0].skus.all()
         skus_mp = {
@@ -357,7 +401,7 @@ class EditTable(TemplateView, ProductUtils):
         del_sku_form.fields['skus'].widget.choices = [(sku.id, sku.sku) for sku in exist_skus]
         return del_sku_form, exist_skus
 
-    def get(self, request, id):
+    def get(self, request: HttpRequest, id: int) -> HttpResponse:
         try:
             del_sku_form, exist_skus = self.get_delete_form(id)
             editing_form = self.get_formsets(id_assembly=id, editing=exist_skus)
@@ -376,7 +420,7 @@ class EditTable(TemplateView, ProductUtils):
                 "select_mp": self.select_mp
             })
 
-    def post(self, request, id):
+    def post(self, request: HttpRequest, id: int) -> HttpResponse:
         form_sku = AddSku(request.POST, prefix='sku')
         form_market = SelectMP(request.POST, prefix='mp')
         if form_sku.is_valid() and form_market.is_valid():
@@ -462,7 +506,8 @@ class Charts(TemplateView):
     redirect_url = '/product_search/view/{id}/'
     template_name = "charts.html"
 
-    def get(self, request, id):
+    def get(self, request: HttpRequest, id: int) -> HttpResponse:
+        print(type(request))
         price_chart_data = []
         sales_chart_data = []
         skus = Assembly.objects.get(id=id).skus.all()

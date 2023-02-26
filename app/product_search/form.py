@@ -1,7 +1,7 @@
 from django import forms
 from django.forms import formset_factory
 
-from app.product_search.models import ProductProperty, Product
+from app.product_search.models import ProductProperty, Product, Assembly
 
 
 class AddSku(forms.Form):
@@ -121,7 +121,13 @@ class CreateAssemblyForm(forms.Form):
             "id": "exampleFormControlSelect1",
         })
     )
-
+    type = forms.IntegerField(
+        label='', widget=forms.Select({
+            "placeholder": "Тип",
+            "class": "form-control form-control-lg",
+            "id": "exampleFormControlSelect1"
+        }, choices=Assembly.TYPES)
+    )
 
 class EditingAssembly(forms.Form):
     prefix = 'edit_assembly'

@@ -23,6 +23,12 @@ class Product(models.Model):
 
 
 class Assembly(models.Model):
+    TYPE_CLOTHES = 1
+    TYPE_OTHER = 2
+    TYPES = (
+        (TYPE_CLOTHES, "Одежда"),
+        (TYPE_OTHER, "Остальное"),
+    )
     skus = models.ManyToManyField(
         Product, related_name="assembly_sku", verbose_name="Идентификаторы в сборке", blank=True
     )
@@ -32,6 +38,10 @@ class Assembly(models.Model):
 
     user = models.ForeignKey(
         UserProfile, related_name="assembly_user", blank=True, null=True, on_delete=models.CASCADE
+    )
+
+    type = models.IntegerField(
+        verbose_name="Тип (Одежда/Остальное)", blank=True, choices=TYPES, null=True,
     )
 
 
@@ -160,8 +170,15 @@ class Last30DaysData(models.Model):
     name = models.TextField(
         verbose_name="Наименование позиции", blank=True, null=True
     )
-
-
+    client_sale = models.FloatField(
+        verbose_name="Размер Скидки Постоянного Покупателя", blank=True, null=True
+    )
+    client_price = models.FloatField(
+        verbose_name="Итоговая цена для посетителя, с учетом СПП", blank=True, null=True
+    )
+    days_in_stock = models.IntegerField(
+        verbose_name="Дней в наличии", blank=True, null=True
+    )
 
 def image_path(instance, filename):
     # file will be uploaded to MEDIA_ROOT/product/id/<filename>
@@ -190,3 +207,24 @@ class ProductPhoto(models.Model):
                 File(open(result[0], 'rb'))
             )
             self.save()
+
+
+class SizeProduct(models.Model):
+    sku = models.ForeignKey(
+        Product, verbose_name="Артикул", blank=False, related_name="size", on_delete=models.CASCADE, null=True
+    )
+    sales = models.JSONField(
+        verbose_name="Количество проданных единиц товара за период последние 30 дней", blank=True, null=True
+    )
+    size_name = models.TextField(
+        verbose_name="Размер", blank=True, null=True
+    )
+    title = models.TextField(
+        verbose_name="Название", blank=True, null=True
+    )
+    size_origin = models.TextField(
+        verbose_name="Размер поставщика", blank=True, null=True
+    )
+    balance = models.JSONField(
+        verbose_name="Остаток единиц товара за период последние 30 дней", blank=True, null=True
+    )
