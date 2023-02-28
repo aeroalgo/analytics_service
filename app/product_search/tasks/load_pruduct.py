@@ -1,5 +1,6 @@
 import time
 import datetime
+from statistics import mean
 from typing import List
 from urllib.parse import quote
 from app.analytics.settings import env
@@ -58,9 +59,11 @@ class LoadData(ParseSkuMixin):
         instance.graph = item.get("graph")
         instance.price_graph = item.get("price_graph")
         instance.name = item.get("name")
-        instance.client_sale = item.get("client_sale")
-        instance.client_price = item.get("client_price")
+        instance.client_sale = item.get("client_sale") or 0
+        instance.client_price = item.get("client_price") or item.get("final_price")
         instance.days_in_stock = item.get("days_in_stock")
+        instance.link = cd_kwargs.get('item_link')
+        instance.brand = cd_kwargs.get('item_brand')
         instance.most_sales = self.most_sales(graph=item.get("graph"), price_graph=item.get("price_graph"))
         now = datetime.datetime.now().date()
         data = Last30DaysData.objects.filter(sku_id=product.id, date_update=now)
@@ -93,7 +96,6 @@ class LoadData(ParseSkuMixin):
         product = Product.objects.get(sku=cd_kwargs.get("item_id"))
         SizeProduct.objects.filter(sku=product.id).delete()
         all_size = []
-        print(result)
         for size, data in result.items():
             instance = SizeProduct()
             instance.sku = product
@@ -104,8 +106,6 @@ class LoadData(ParseSkuMixin):
             instance.balance = data.get("balance")
             all_size.append(instance)
         SizeProduct.objects.bulk_create(all_size)
-
-
 
 
 class ParseSkuWB(ExtractData, ParseSkuMixin):
@@ -120,6 +120,7 @@ class ParseSkuWB(ExtractData, ParseSkuMixin):
         item = response.get('item')
         item_brand = item.get('brand')
         item_id = item.get('id')
+        item_link = item.get('link')
         item_first_date = item.get('first_date')
         item_photo_url = response.get('photos')[0].get('f')
         dates = self.get_period_date(item_first_date)
@@ -131,6 +132,8 @@ class ParseSkuWB(ExtractData, ParseSkuMixin):
         d1, d2 = self.get_date(delta=30)
 
         cd_kwargs = {
+            "item_brand": item_brand,
+            "item_link": item_link,
             "clothes": False,
             "item_id": item_id,
             "item_photo_url": "https:" + item_photo_url,
@@ -159,14 +162,19 @@ class ParseSkuWB(ExtractData, ParseSkuMixin):
 
     def get_brand_data_30days(self, response, headers, cookie, payload, cd_kwargs):
         next_tasks = []
-        NEXT_URL = "https://mpstats.io/api/wb/get/item/{sku}/orders_by_size?d1={d1}&d2={d2}"
+        next_url_size = "https://mpstats.io/api/wb/get/item/{sku}/orders_by_size?d1={d1}&d2={d2}"
+        next_url_pos = "https://mpstats.io/api/wb/get/item/{sku}/by_category?d1={d1}&d2={d2}"
         logger.info(response)
         load = LoadData()
         load.add_brand_data_30days(response=response, cd_kwargs=cd_kwargs)
         if cd_kwargs.get("clothes"):
             next_tasks.append(
-                Task(url=NEXT_URL.format(d1=cd_kwargs.get("d1"), d2=cd_kwargs.get("d2"), sku=cd_kwargs.get("item_id")),
+                Task(url=next_url_size.format(d1=cd_kwargs.get("d1"), d2=cd_kwargs.get("d2"),
+                                              sku=cd_kwargs.get("item_id")),
                      headers=headers.copy(), callback=self.get_size_data, cd_kwargs=cd_kwargs.copy()))
+        next_tasks.append(
+            Task(url=next_url_pos.format(d1=cd_kwargs.get("d1"), d2=cd_kwargs.get("d2"), sku=cd_kwargs.get("item_id")),
+                 headers=headers.copy(), callback=self.get_category_pos, cd_kwargs=cd_kwargs.copy()))
         return next_tasks
 
     def get_size_data(self, response, headers, cookie, payload, cd_kwargs):
@@ -174,11 +182,13 @@ class ParseSkuWB(ExtractData, ParseSkuMixin):
         load.add_size_data(response=response, cd_kwargs=cd_kwargs)
 
     def get_category_pos(self, response, headers, cookie, payload, cd_kwargs):
-        now = datetime.datetime.now().date()
         product = Product.objects.get(sku=cd_kwargs.get("item_id"))
-        # print(response)
-        # Last30DaysData.objects.filter(sku_id=product.id, date_update=now).update()
-        pass
+        data = Last30DaysData.objects.get(sku_id=product.id)
+        positions = response.get("categories").get(data.category.name)
+        positions = [x for x in positions if x != 0]
+        position = mean(positions)
+        data.categories_pos = position
+        data.save()
 
     def get_brand_data_period(self, response, headers, cookie, payload, cd_kwargs):
         logger.info(response)
@@ -200,6 +210,9 @@ class ParseSkuOzon(ExtractData, ParseSkuMixin):
         item_brand = item.get('brand')
         item_id = item.get('id')
         item_first_date = item.get('first_date')
+        item_link = item.get('link')
+
+        item_photo_url = response.get('photos')[0].get('f')
         pk = Product.objects.get(sku=item_id).id
         exist_date = []
         if item_first_date is None:
@@ -210,13 +223,21 @@ class ParseSkuOzon(ExtractData, ParseSkuMixin):
         dates = self.get_period_date(item_first_date, db_date=True)
         NEXT_URL = 'https://mpstats.io/api/oz/get/brand?d1={d1}&d2={d2}&path={item_brand}'
         logger.info(response)
+
         payload = self.get_payload(item_id)
         d1, d2 = self.get_date(delta=30)
         cd_kwargs = {
+            "item_brand": item_brand,
+            "clothes": False,
+            "item_photo_url": item_photo_url,
+            "item_link": item_link,
             "item_id": item_id,
             "d1": d1,
             "d2": d2
         }
+        item_sizeandstores = item.get('sizeandstores', False)
+        if item_sizeandstores:
+            cd_kwargs["clothes"] = True
         next_tasks.append(Task(url=NEXT_URL.format(d1=d1, d2=d2, item_brand=quote(item_brand)),
                                headers=headers.copy(), callback=self.get_brand_data_30days,
                                payload=payload, cd_kwargs=cd_kwargs.copy()))
@@ -235,20 +256,29 @@ class ParseSkuOzon(ExtractData, ParseSkuMixin):
 
     def get_brand_data_30days(self, response, headers, cookie, payload, cd_kwargs):
         next_tasks = []
-        NEXT_URL = "https://mpstats.io/api/wb/get/item/{sku}/by_category?d1={d1}&d2={d2}"
-        logger.info(response)
+        next_url_pos = "https://mpstats.io/api/oz/get/item/{sku}/by_category?d1={d1}&d2={d2}"
         load = LoadData()
         load.add_brand_data_30days(response=response, cd_kwargs=cd_kwargs)
-        # next_tasks.append(
-        #     Task(url=NEXT_URL.format(d1=cd_kwargs.get("d1"), d2=cd_kwargs.get("d2"), sku=cd_kwargs.get("item_id")),
-        #          headers=headers.copy(), callback=self.get_category_pos, cd_kwargs=cd_kwargs.copy()))
-        # return next_tasks
+        next_tasks.append(
+            Task(url=next_url_pos.format(d1=cd_kwargs.get("d1"), d2=cd_kwargs.get("d2"), sku=cd_kwargs.get("item_id")),
+                 headers=headers.copy(), callback=self.get_category_pos, cd_kwargs=cd_kwargs.copy()))
+        return next_tasks
+
+    def get_category_pos(self, response, headers, cookie, payload, cd_kwargs):
+        logger.warn(response)
+        product = Product.objects.get(sku=cd_kwargs.get("item_id"))
+        data = Last30DaysData.objects.get(sku_id=product.id)
+        print(data.category.name)
+        positions = response.get("categories").get(data.category.name)
+        positions = [x for x in positions if x != 0 and x != 'NaN']
+        position = mean(positions)
+        data.categories_pos = position
+        data.save()
 
     def get_size_data(self):
         pass
 
     def load_data_period(self, response, headers, cookie, payload, cd_kwargs):
-        logger.info(response)
         load = LoadData()
         load.add_brand_data_period(response=response, cd_kwargs=cd_kwargs)
 

@@ -137,7 +137,7 @@ class Last30DaysData(models.Model):
     )
 
     categories_pos = models.FloatField(
-        verbose_name="Средняя позиция в выдаче", blank=True, null=True
+        verbose_name="Средняя позиция в выдаче", blank=True, default=0
     )
     category = models.ForeignKey(
         Categories, verbose_name="Категория", blank=False, related_name="days_data_category", on_delete=models.CASCADE,
@@ -171,13 +171,19 @@ class Last30DaysData(models.Model):
         verbose_name="Наименование позиции", blank=True, null=True
     )
     client_sale = models.FloatField(
-        verbose_name="Размер Скидки Постоянного Покупателя", blank=True, null=True
+        verbose_name="Размер Скидки Постоянного Покупателя", blank=True, default=0
     )
     client_price = models.FloatField(
         verbose_name="Итоговая цена для посетителя, с учетом СПП", blank=True, null=True
     )
     days_in_stock = models.IntegerField(
         verbose_name="Дней в наличии", blank=True, null=True
+    )
+    link = models.TextField(
+        verbose_name="Ссылка на товар", blank=True, null=True
+    )
+    brand = models.TextField(
+        verbose_name="Бренд", blank=True, null=True
     )
 
 def image_path(instance, filename):

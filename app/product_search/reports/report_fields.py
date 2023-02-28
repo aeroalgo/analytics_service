@@ -1,131 +1,99 @@
+from statistics import mean
+
+from app.product_search.models import ProductProperty
+
 REPORT_FIELDS_SKELETONS = {
     "main": [
         {
             "title": "Обновлено",
-            "value": lambda x: x.date_update
+            "value": lambda x: x.days_data.first().date_update
         },
         {
             "title": "Фото",
-            "value": lambda x: x.photo
+            "value": lambda x: x.photo.first().photo
         },
         {
             "title": "Ссылка",
-            "value": lambda x: x.date_finish.replace(tzinfo=timezone.utc).astimezone(
-                pytz.timezone(settings.TIME_ZONE)
-            ),
+            "value": lambda x: x.days_data.first().link
         },
         {
             "title": "Наименование",
-            "value": lambda x, a: round((x.date_finish - a).total_seconds() / 60)
-            if x.date_finish is not None and a is not None
-            else 0,
+            "value": lambda x: x.days_data.first().name
         },
         {
             "title": "Бренд",
-            "value": lambda x, a: round((x.date_finish - a).total_seconds() / 60)
-            if x.date_finish is not None and a is not None
-            else 0,
+            "value": " "
         },
         {
             "title": "Категория",
-            "value": lambda x, a: round((x.date_finish - a).total_seconds() / 60)
-            if x.date_finish is not None and a is not None
-            else 0,
+            "value": lambda x: x.days_data.first().category.name
         },
         {
             "title": "Тип конкуренции",
-            "value": lambda x, a: round((x.date_finish - a).total_seconds() / 60)
-            if x.date_finish is not None and a is not None
-            else 0,
+            "value": lambda x: dict(ProductProperty.COMPETITIONS).get(x.property.first().competition)
         },
         {
             "title": "Последняя цена",
-            "value": lambda x, a: round((x.date_finish - a).total_seconds() / 60)
-            if x.date_finish is not None and a is not None
-            else 0,
+            "value": lambda x: x.days_data.first().last_price
         },
         {
             "title": "Цена 80% продаж",
-            "value": lambda x, a: round((x.date_finish - a).total_seconds() / 60)
-            if x.date_finish is not None and a is not None
-            else 0,
+            "value": lambda x: x.days_data.first().most_sales
         },
         {
             "title": "СПП",
-            "value": lambda x, a: round((x.date_finish - a).total_seconds() / 60)
-            if x.date_finish is not None and a is not None
-            else 0,
+            "value": lambda x: x.days_data.first().client_sale
         },
         {
             "title": "Цена с СПП",
-            "value": lambda x, a: round((x.date_finish - a).total_seconds() / 60)
-            if x.date_finish is not None and a is not None
-            else 0,
+            "value": lambda x: x.days_data.first().client_price
         },
         {
             "title": "Выручка за 30 дней",
-            "value": lambda x, a: round((x.date_finish - a).total_seconds() / 60)
-            if x.date_finish is not None and a is not None
-            else 0,
+            "value": lambda x: x.days_data.first().revenue
         },
         {
             "title": "Средняя цена за 30 дней",
-            "value": lambda x, a: round((x.date_finish - a).total_seconds() / 60)
-            if x.date_finish is not None and a is not None
-            else 0,
+            "value": lambda x: x.days_data.first().final_price_average
         },
         {
             "title": "Средняя в выдаче",
-            "value": lambda x, a: round((x.date_finish - a).total_seconds() / 60)
-            if x.date_finish is not None and a is not None
-            else 0,
+            "value": lambda x: x.days_data.first().categories_pos
         },
         {
             "title": "Дата первого появления",
-            "value": lambda x, a: round((x.date_finish - a).total_seconds() / 60)
-            if x.date_finish is not None and a is not None
-            else 0,
+            "value": lambda x: x.days_data.first().first_date
         },
         {
             "title": "Стартовая цена",
-            "value": lambda x, a: round((x.date_finish - a).total_seconds() / 60)
-            if x.date_finish is not None and a is not None
-            else 0,
+            "value": lambda x: x.days_data.first().start_price
         },
         {
             "title": "Цвет",
-            "value": lambda x, a: round((x.date_finish - a).total_seconds() / 60)
-            if x.date_finish is not None and a is not None
-            else 0,
+            "value": " "
         },
         {
             "title": "Заказы всего",
-            "value": lambda x, a: round((x.date_finish - a).total_seconds() / 60)
-            if x.date_finish is not None and a is not None
-            else 0,
+            "value": lambda x: x.days_data.first().sales
         },
         {
             "title": "Дней в наличии",
-            "value": lambda x, a: round((x.date_finish - a).total_seconds() / 60)
-            if x.date_finish is not None and a is not None
-            else 0,
+            "value": lambda x: x.days_data.first().days_in_stock
         },
 
     ],
     "advanced": [
         {
             "title": "Размер",
-            "value": lambda x: x.user.position_state_relation.title
-            if x.user.position_state_relation is not None
-            else "Не указано",
+            "value": lambda x: x.title
         },
         {
             "title": "Заказы по размеру",
-            "value": lambda x: x.user.get_full_name()
+            "value": lambda x: sum(x.sales)
         },
         {
             "title": "Средний остаток по размеру",
-            "value": lambda x: x.user.user_principal_name
+            "value": lambda x: mean(x.balance)
         },
     ],
 }

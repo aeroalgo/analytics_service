@@ -102,6 +102,7 @@ class Task:
                         await session.close()
         except Exception as e:
             logger.error(msg=self.headers, exc_info=True)
+            logger.error(msg=self.url, exc_info=True)
             self.status = f'skipped, {status}'
             if self.count_call <= 3:
                 self.count_call += 1

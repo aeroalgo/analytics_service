@@ -6,6 +6,7 @@ from django.http import HttpResponse, HttpRequest
 from django.http import HttpResponseRedirect
 from django.views.generic import TemplateView
 from app.product_search.charts import LineChartData
+from app.product_search.tasks.generate_reports import GenerateReport
 from app.product_search.tasks.load_pruduct import GetSku
 from app.product_search.models import Product, ProductProperty, Assembly, Last30DaysData, PeriodData, ProductPhoto
 from app.product_search.form import AddSku, SelectMP, EditingPropertyProduct, ReadonlyPropertyProduct, \
@@ -25,8 +26,10 @@ class ProductUtils:
         # "lost_profit": item.lost_profit,
         "revenue": " ",
         "final_price_average": " ",
+        "ssp": " ",
+        "price_ssp": " ",
         # Валовая прибыль нет в описании
-        "val_price": " ",
+        # "val_price": " ",
         # Средняя позиция в выдаче не понятно как считать
         "categories_pos": " ",
         "first_date": " ",
@@ -80,40 +83,55 @@ class ProductUtils:
             prefetch_table.append("size")
         items_data = Product.objects.filter(id__in=skus_id).prefetch_related(*prefetch_table)
         for item in items_data:
-            default = self.default_structure.copy()
-            default["last_update"] = item.days_data.first().date_update
-            default["mp"] = dict(Product.MARKETS).get(item.mp)
-            default["competition"] = dict(ProductProperty.COMPETITIONS).get(
-                item.property.filter(assembly_id=id, sku_id=item.id).first().competition).replace(" ", "<br>")
-            default["img"] = item.photo.first().photo if item.photo else None
-            default["article"] = item.sku
-            default["name"] = self.line_break_symbol(10, item.days_data.first().name)
-            default["last_price"] = item.days_data.first().last_price
-            default["most_sales"] = round(item.days_data.first().most_sales, 1)
-            # "lost_profit": item.lost_profit,
-            default["revenue"] = round(item.days_data.first().revenue, 1)
-            default["final_price_average"] = round(item.days_data.first().final_price_average, 1)
-            # Валовая прибыль нет в описании
-            # Средняя позиция в выдаче не понятно как считать
-            default["first_date"] = item.days_data.first().first_date
-            default["sales"] = item.days_data.first().sales
-            default["rating"] = item.days_data.first().rating
-            default["comments"] = item.days_data.first().comments
-            if clothes:
-                for idx, size in enumerate(item.size.all()):
-                    if idx == 0:
-                        default["size_title"] = size.title.replace(" ", "<br>")
-                        default["size_sales"] = sum(size.sales)
-                        default["size_balance"] = round(sum(size.balance) / len(size.balance), 2)
+            try:
+                default = self.default_structure.copy()
+                default["last_update"] = item.days_data.first().date_update
+                default["mp"] = dict(Product.MARKETS).get(item.mp)
+                default["competition"] = dict(ProductProperty.COMPETITIONS).get(
+                    item.property.filter(assembly_id=id, sku_id=item.id).first().competition).replace(" ", "<br>")
+                default["img"] = item.photo.first().photo if item.photo else None
+                default["article"] = item.sku
+                default["name"] = self.line_break_symbol(10, item.days_data.first().name)
+                default["last_price"] = item.days_data.first().last_price
+                default["most_sales"] = round(item.days_data.first().most_sales, 1)
+                default["ssp"] = round(item.days_data.first().client_sale, 1)
+                default["price_ssp"] = round(item.days_data.first().client_price, 1)
+                default["categories_pos"] = round(item.days_data.first().categories_pos, 1)
+                default["start_price"] = item.days_data.first().start_price
+                # "lost_profit": item.lost_profit,
+                default["revenue"] = round(item.days_data.first().revenue, 1)
+                default["final_price_average"] = round(item.days_data.first().final_price_average, 1)
+                # Валовая прибыль нет в описании
+                # Средняя позиция в выдаче не понятно как считать
+                default["first_date"] = item.days_data.first().first_date
+                default["sales"] = item.days_data.first().sales
+                default["rating"] = item.days_data.first().rating
+                default["comments"] = item.days_data.first().comments
+                sizes = item.size.all()
+                if clothes:
+                    if sizes:
+                        for idx, size in enumerate(sizes):
+                            if idx == 0:
+                                default["size_title"] = size.title.replace(" ", "<br>")
+                                default["size_sales"] = sum(size.sales)
+                                default["size_balance"] = round(sum(size.balance) / len(size.balance), 2)
+                            else:
+                                default = self.default_structure.copy()
+                                default["article"] = item.sku
+                                default["size_title"] = size.title.replace(" ", "<br>")
+                                default["size_sales"] = sum(size.sales)
+                                default["size_balance"] = round(sum(size.balance) / len(size.balance), 2)
+                            pruduct_30_days.append(default.copy())
                     else:
-                        default = self.default_structure.copy()
-                        default["article"] = item.sku
-                        default["size_title"] = size.title.replace(" ", "<br>")
-                        default["size_sales"] = sum(size.sales)
-                        default["size_balance"] = round(sum(size.balance) / len(size.balance), 2)
+                        default["size_title"] = None
+                        default["size_sales"] = None
+                        default["size_balance"] = None
+                        pruduct_30_days.append(default.copy())
+                else:
                     pruduct_30_days.append(default.copy())
-            else:
-                pruduct_30_days.append(default.copy())
+            except Exception as e:
+                print(e)
+                continue
         return pruduct_30_days
 
 
@@ -507,7 +525,6 @@ class Charts(TemplateView):
     template_name = "charts.html"
 
     def get(self, request: HttpRequest, id: int) -> HttpResponse:
-        print(type(request))
         price_chart_data = []
         sales_chart_data = []
         skus = Assembly.objects.get(id=id).skus.all()
@@ -536,3 +553,12 @@ class Charts(TemplateView):
         for i in range(delta.days + 1):
             dates.append(str(d1 + datetime.timedelta(days=i)))
         return dates
+
+
+class DownloadReport(TemplateView):
+    redirect_url = '/product_search/view/{id}/'
+
+    def get(self, request: HttpRequest, id: int) -> HttpResponse:
+        x = GenerateReport(assembly_id=id)
+        x.process()
+        return HttpResponseRedirect(self.redirect_url.format(id=id))
