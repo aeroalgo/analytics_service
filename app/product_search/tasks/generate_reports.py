@@ -14,4 +14,4 @@ class GenerateReport(AsyncTask):
 
     def process(self):
         report = Report(assembly_id=self.assembly_id, extension="xlsx")
-        report.generate_report_xls()
+        return report.generate_report_xls()

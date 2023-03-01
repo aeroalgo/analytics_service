@@ -58,7 +58,7 @@ MIDDLEWARE = [
     'django.contrib.auth.middleware.AuthenticationMiddleware',
     'django.contrib.messages.middleware.MessageMiddleware',
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
-    # 'app.login.middleware.LoginRequiredMiddleware'
+    'app.login.middleware.LoginRequiredMiddleware'
 ]
 
 ROOT_URLCONF = 'analytics.urls'
@@ -130,6 +130,17 @@ AUTH_PASSWORD_VALIDATORS = [
 ]
 
 AUTH_USER_MODEL = "login.UserProfile"
+LOGIN_REDIRECT_URL = "/product_search/create"
+LOGOUT_REDIRECT_URL = "/accounts/login/"
+LOGIN_URL = "/accounts/login/"
+LOGIN_EXEMPT_URLS = (
+    r"^/static",
+    r"^/media",
+    r"^/accounts/login",
+    r"^/accounts/logout",
+    r"^/accounts/confirm-email",
+    r"^/admin/",
+)
 
 # AUTHENTICATION_BACKENDS = (
 #     'django.contrib.auth.backends.ModelBackend',
@@ -148,6 +159,7 @@ RABBITMQ = {
     "VHOST": os.environ.get("RABBITMQ_VHOST", "/"),
 }
 RABBITMQ_URL = "amqp://analytics:analytics@rabbitmq:5672//analytics"
+
 
 # Internationalization
 # https://docs.djangoproject.com/en/4.1/topics/i18n/

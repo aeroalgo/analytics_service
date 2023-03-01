@@ -22,7 +22,7 @@ REPORT_FIELDS_SKELETONS = {
         },
         {
             "title": "Бренд",
-            "value": " "
+            "value": lambda x: x.days_data.first().brand
         },
         {
             "title": "Категория",
@@ -89,11 +89,11 @@ REPORT_FIELDS_SKELETONS = {
         },
         {
             "title": "Заказы по размеру",
-            "value": lambda x: sum(x.sales)
+            "value": lambda x: sum([x for x in x.sales if x != "NaN"])
         },
         {
             "title": "Средний остаток по размеру",
-            "value": lambda x: mean(x.balance)
+            "value": lambda x: mean([x for x in x.balance if x != "NaN"])
         },
     ],
 }

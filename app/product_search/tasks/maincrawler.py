@@ -104,10 +104,6 @@ class Task:
             logger.error(msg=self.headers, exc_info=True)
             logger.error(msg=self.url, exc_info=True)
             self.status = f'skipped, {status}'
-            if self.count_call <= 3:
-                self.count_call += 1
-                logger.info(self.payload)
-                await self.called_class.put(self)
 
 
 class ExtractData:

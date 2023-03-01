@@ -1,10 +1,13 @@
 import datetime
+from statistics import mean
 from typing import List
 from django import forms
 from django.shortcuts import render
 from django.http import HttpResponse, HttpRequest
 from django.http import HttpResponseRedirect
 from django.views.generic import TemplateView
+import requests as r
+from app.analytics.settings import env
 from app.product_search.charts import LineChartData
 from app.product_search.tasks.generate_reports import GenerateReport
 from app.product_search.tasks.load_pruduct import GetSku
@@ -30,7 +33,6 @@ class ProductUtils:
         "price_ssp": " ",
         # Валовая прибыль нет в описании
         # "val_price": " ",
-        # Средняя позиция в выдаче не понятно как считать
         "categories_pos": " ",
         "first_date": " ",
         "start_price": " ",
@@ -113,14 +115,14 @@ class ProductUtils:
                         for idx, size in enumerate(sizes):
                             if idx == 0:
                                 default["size_title"] = size.title.replace(" ", "<br>")
-                                default["size_sales"] = sum(size.sales)
-                                default["size_balance"] = round(sum(size.balance) / len(size.balance), 2)
+                                default["size_sales"] = sum([x for x in size.sales if x != "NaN"])
+                                default["size_balance"] = round(mean([x for x in size.balance if x != "NaN"]), 2)
                             else:
                                 default = self.default_structure.copy()
                                 default["article"] = item.sku
                                 default["size_title"] = size.title.replace(" ", "<br>")
-                                default["size_sales"] = sum(size.sales)
-                                default["size_balance"] = round(sum(size.balance) / len(size.balance), 2)
+                                default["size_sales"] = sum([x for x in size.sales if x != "NaN"])
+                                default["size_balance"] = round(mean([x for x in size.balance if x != "NaN"]), 2)
                             pruduct_30_days.append(default.copy())
                     else:
                         default["size_title"] = None
@@ -252,10 +254,12 @@ class CreateAssembly(TemplateView):
     template_name = "create_assembly.html"
     redirect_url = '/product_search/create/{id}/'
     assembly = CreateAssemblyForm()
-
     def get(self, request: HttpRequest):
+        url = 'http://mpstats.io/api/user/report_api_limit'
+        x = r.get(url=url, headers=GetSku.HEADERS)
+        api_limit = x.json()
         return render(request, self.template_name, context={
-            "create_assembly": self.assembly,
+            "create_assembly": self.assembly, "api_limit": api_limit
         })
 
     def post(self, request: HttpRequest) -> HttpResponse:
@@ -285,6 +289,9 @@ class ViewTableSkus(TemplateView, ProductUtils):
     template_name = "view_table_skus.html"
 
     def get(self, request: HttpRequest, id: int) -> HttpResponse:
+        url = 'http://mpstats.io/api/user/report_api_limit'
+        x = r.get(url=url, headers=GetSku.HEADERS)
+        api_limit = x.json()
         quarter = {
             1: [],
             2: [],
@@ -332,58 +339,63 @@ class ViewTableSkus(TemplateView, ProductUtils):
 
             insert_idx = idx_sku
             for idx_item, item in enumerate(period_items_data):
-                item_data_default = {
-                    "revenue": None,
-                    "lost_profit": None,
-                    "sales": None,
-                    "final_price_average": None,
-                    # Валовая прибыль нет в описании
-                    # Средняя позиция в выдаче не понятно как считать
+                try:
+                    item_data_default = {
+                        "revenue": None,
+                        "lost_profit": None,
+                        "sales": None,
+                        "final_price_average": None,
+                        # Валовая прибыль нет в описании
+                        # Средняя позиция в выдаче не понятно как считать
 
-                }
-                if idx_item != 0 and item.date_start.month == 1:
-                    insert_idx += 1
-                data = []
-                start_items_data = {
-                    "year": str(item.date_start.year),
-                    "mp": dict(Product.MARKETS).get(item.sku.mp),
-                    "competition": dict(ProductProperty.COMPETITIONS).get(property[0].competition),
-                    "article": item.sku.sku,
+                    }
+                    if idx_item != 0 and item.date_start.month == 1:
+                        insert_idx += 1
+                    data = []
+                    start_items_data = {
+                        "year": str(item.date_start.year),
+                        "mp": dict(Product.MARKETS).get(item.sku.mp),
+                        "competition": dict(ProductProperty.COMPETITIONS).get(property[0].competition),
+                        "article": item.sku.sku,
 
-                }
-                item_data = {
-                    "revenue": round(item.revenue, 1),
-                    "lost_profit": item.lost_profit,
-                    "sales": item.sales,
-                    "final_price_average": round(item.final_price_average, 1),
-                    # Валовая прибыль нет в описании
-                    # Средняя позиция в выдаче не понятно как считать
+                    }
+                    item_data = {
+                        "revenue": round(item.revenue, 1),
+                        "lost_profit": item.lost_profit,
+                        "sales": item.sales,
+                        "final_price_average": round(item.final_price_average, 1),
+                        # Валовая прибыль нет в описании
+                        # Средняя позиция в выдаче не понятно как считать
 
-                }
-                if idx_item == 0 or item.date_start.month in (1, 4, 7, 10):
-                    data.append(start_items_data.copy())
-                    if idx_item == 0:
-                        for i in range(add_default_start.get(item.date_start.month)):
+                    }
+                    if idx_item == 0 or item.date_start.month in (1, 4, 7, 10):
+                        data.append(start_items_data.copy())
+                        if idx_item == 0:
+                            for i in range(add_default_start.get(item.date_start.month)):
+                                data.append(item_data_default.copy())
+                        data.append(item_data.copy())
+                    if idx_item == len(period_items_data) - 1:
+                        for i in range(add_default_end.get(item.date_start.month)):
                             data.append(item_data_default.copy())
-                    data.append(item_data.copy())
-                if idx_item == len(period_items_data) - 1:
-                    for i in range(add_default_end.get(item.date_start.month)):
-                        data.append(item_data_default.copy())
-                if data:
-                    quarter.get(PeriodData.MONTH_QUARTER.get(item.date_start.month)).append(data.copy())
-                else:
-                    len_data = len(quarter.get(PeriodData.MONTH_QUARTER.get(item.date_start.month)))
-                    if len_data - 1 > insert_idx or len_data - 1 < insert_idx:
-                        insert_idx = len(quarter.get(PeriodData.MONTH_QUARTER.get(item.date_start.month))) - 1
-                    quarter.get(PeriodData.MONTH_QUARTER.get(item.date_start.month))[insert_idx].append(
-                        item_data.copy())
-                    insert_idx = idx_sku
+                    if data:
+                        quarter.get(PeriodData.MONTH_QUARTER.get(item.date_start.month)).append(data.copy())
+                    else:
+                        len_data = len(quarter.get(PeriodData.MONTH_QUARTER.get(item.date_start.month)))
+                        if len_data - 1 > insert_idx or len_data - 1 < insert_idx:
+                            insert_idx = len(quarter.get(PeriodData.MONTH_QUARTER.get(item.date_start.month))) - 1
+                        quarter.get(PeriodData.MONTH_QUARTER.get(item.date_start.month))[insert_idx].append(
+                            item_data.copy())
+                        insert_idx = idx_sku
+                except Exception as e:
+                    print(e)
+                    continue
 
             skus_ids.append(sku_id)
 
         pruduct_30_days = self.get_table_data(id=id, skus_id=skus_ids, clothes=clothes)
         return render(request, self.template_name, context={
-            "table_30days": pruduct_30_days, "quarter_data": quarter, "clothes": clothes
+            "table_30days": pruduct_30_days, "quarter_data": quarter, "clothes": clothes,
+            "api_limit": api_limit
         })
 
 
@@ -527,20 +539,25 @@ class Charts(TemplateView):
     def get(self, request: HttpRequest, id: int) -> HttpResponse:
         price_chart_data = []
         sales_chart_data = []
+        balance_chart_data = []
         skus = Assembly.objects.get(id=id).skus.all()
         last_datas = Last30DaysData.objects.filter(sku__in=skus).select_related("sku")
         all_date = self.get_all_date(last_date=last_datas[0].date_update)
         for idx, data in enumerate(last_datas):
             price_data = LineChartData(label=data.sku.sku, data=data.price_graph)
             sales_data = LineChartData(label=data.sku.sku, data=data.graph)
+            balance_data = LineChartData(label=data.sku.sku, data=data.balance)
             price_data.set_color(idx)
             sales_data.set_color(idx)
+            balance_data.set_color(idx)
             price_chart_data.append(price_data.dict())
             sales_chart_data.append(sales_data.dict())
+            balance_chart_data.append(balance_data.dict())
         return render(request, self.template_name, context={
             "labels": all_date,
             "price_data": price_chart_data,
-            "sales_data": sales_chart_data
+            "sales_data": sales_chart_data,
+            "balance_data": balance_chart_data,
         })
 
     def get_all_date(self, last_date):
@@ -556,9 +573,8 @@ class Charts(TemplateView):
 
 
 class DownloadReport(TemplateView):
-    redirect_url = '/product_search/view/{id}/'
+    redirect_url = '/media/'
 
     def get(self, request: HttpRequest, id: int) -> HttpResponse:
         x = GenerateReport(assembly_id=id)
-        x.process()
-        return HttpResponseRedirect(self.redirect_url.format(id=id))
+        return HttpResponseRedirect(self.redirect_url+x.process())

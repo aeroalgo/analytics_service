@@ -27,11 +27,11 @@ class Report:
         return fields
 
     @staticmethod
-    def get_report_path(assembly_id, extension):
+    def get_report_path(assembly_name, extension):
         """Генерация пути до отчета."""
         file_path = datetime.datetime.now().strftime(
-            "reports/%Y-%m/assembly_{assembly_id}.{extension}"
-        ).format(assembly_id=assembly_id, extension=extension)
+            "reports/%Y-%m/assembly_{assembly_name}.{extension}"
+        ).format(assembly_name=assembly_name, extension=extension)
         full_path = settings.MEDIA_ROOT + "/" + file_path
 
         if not os.path.exists(os.path.dirname(full_path)):
@@ -75,7 +75,6 @@ class Report:
             cell_value = int(cell_value)
             row_style["num_format"] = "0"
         elif isinstance(cell_value, float):
-            print(cell_value)
             row_style["num_format"] = "#,##0.00"
             if float(cell_value) == int(cell_value):
                 row_style["num_format"] = "0"
@@ -135,14 +134,14 @@ class Report:
         return width_col
 
     def generate_report_xls(self):
+        assembly = Assembly.objects.get(id=self.assembly_id)
         file_path, full_path = self.get_report_path(
-            assembly_id=self.assembly_id, extension=self.extension
+            assembly_name=assembly.name, extension=self.extension
         )
         print(file_path, full_path)
-
         self.workbook = xlsxwriter.Workbook(full_path, {"remove_timezone": True})
         self.worksheet_main = self.workbook.add_worksheet("Данные")
-        assembly = Assembly.objects.get(id=self.assembly_id)
+
         fields = self.get_fields(assembly=assembly)
         skus = assembly.skus.all()
         skus = Product.objects.filter(id__in=skus).prefetch_related("days_data", "photo", "size", "property")
@@ -177,15 +176,21 @@ class Report:
                             size_column[field.get("title")] = size
                         self.worksheet_main.set_column(idx_field, idx_field, size_column[field.get("title")])
                         if image and path:
-                            self.worksheet_main.insert_image('B2', path)
+                            self.worksheet_main.insert_image(f'B{idx_sku + start_row + 1}', path)
                             self.worksheet_main.set_row(idx_sku + start_row, 41)
+                            self.worksheet_main.set_column(idx_field, idx_field, 6)
                         else:
                             self.write_value(idx_sku + start_row, idx_field, value, self.worksheet_main)
                     else:
                         for size in sizes:
                             value = field.get("value")(size)
                             self.write_value(idx_sku + start_row, idx_field, value, self.worksheet_main)
+                            size = self.size_cell(value)
+                            if size_column[field.get("title")] < size:
+                                size_column[field.get("title")] = size
+                            self.worksheet_main.set_column(idx_field, idx_field, size_column[field.get("title")])
                             start_row += 1
                         start_row -= len(sizes)
             start_row += len(sizes)
         self.workbook.close()
+        return file_path

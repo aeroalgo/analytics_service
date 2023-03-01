@@ -167,6 +167,9 @@ class Last30DaysData(models.Model):
     price_graph = models.JSONField(
         verbose_name="График цены", blank=True, null=True
     )
+    balance = models.JSONField(
+        verbose_name="Остатки", blank=True, null=True
+    )
     name = models.TextField(
         verbose_name="Наименование позиции", blank=True, null=True
     )

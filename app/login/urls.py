@@ -1,4 +1,4 @@
-"""analytics URL Configuration
+"""procurement URL Configuration
 
 The `urlpatterns` list routes URLs to views. For more information please see:
     https://docs.djangoproject.com/en/4.1/topics/http/urls/
@@ -13,16 +13,15 @@ Including another URLconf
     1. Import the include() function: from django.urls import include, path
     2. Add a URL to urlpatterns:  path('blog/', include('blog.urls'))
 """
-from django.contrib import admin
-from django.urls import path, include
-from django.conf.urls.static import static
-from app.analytics import settings
+
+from django.urls import path
+from app.login.views import CustomLoginView, Profile, EditProfile
+from django.contrib.auth.views import LogoutView
 
 urlpatterns = [
-    path('admin/', admin.site.urls),
-    path("product_search/", include("product_search.urls")),
-    path("accounts/", include("login.urls"))
-]
+    path('login/', CustomLoginView.as_view(), name="login"),
+    path('logout/', LogoutView.as_view(), name="logout"),
+    path('profile/<int:id>/', Profile.as_view(), name="profile"),
+    path('profile/<int:id>/edit/', EditProfile.as_view(), name="edit_profile")
 
-if settings.DEBUG:
-    urlpatterns += static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)
+]
