@@ -94,9 +94,3 @@ volumes:
   psql_data: { }
   rabbitmqstats_data: { }
   redis_data: { }
-
-
-networks:
-  postgres:
-    external:
-      name: main_network
