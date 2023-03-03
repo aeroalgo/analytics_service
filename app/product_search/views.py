@@ -305,32 +305,10 @@ class ViewTableSkus(TemplateView, ProductUtils):
         skus = exist_assembly.skus.all()
         skus_ids = []
         add_default_start = {
-            1: 0,
-            2: 1,
-            3: 2,
-            4: 0,
-            5: 1,
-            6: 2,
-            7: 0,
-            8: 1,
-            9: 2,
-            10: 0,
-            11: 1,
-            12: 2,
+            1: 0, 2: 1, 3: 2, 4: 0, 5: 1, 6: 2, 7: 0, 8: 1, 9: 2, 10: 0, 11: 1, 12: 2,
         }
         add_default_end = {
-            1: 2,
-            2: 1,
-            3: 0,
-            4: 2,
-            5: 1,
-            6: 0,
-            7: 2,
-            8: 1,
-            9: 0,
-            10: 2,
-            11: 1,
-            12: 0,
+            1: 2, 2: 1, 3: 0, 4: 2, 5: 1, 6: 0, 7: 2, 8: 1, 9: 0, 10: 2, 11: 1, 12: 0,
         }
         for idx_sku, sku in enumerate(skus):
             sku_id = sku.id
