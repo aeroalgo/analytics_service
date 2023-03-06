@@ -17,11 +17,13 @@ from django.contrib import admin
 from django.urls import path, include
 from django.conf.urls.static import static
 from app.analytics import settings
+from app.product_search.views import Redirect
 
 urlpatterns = [
     path('admin/', admin.site.urls),
     path("product_search/", include("product_search.urls")),
-    path("accounts/", include("login.urls"))
+    path("accounts/", include("login.urls")),
+    path("", Redirect.as_view(), name='redirect')
 ]
 
 if settings.DEBUG:

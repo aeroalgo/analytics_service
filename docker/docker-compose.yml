@@ -44,9 +44,6 @@ services:
       - psql-analytics
     ports:
       - ${APP_PORT_ANALYTICS}:${APP_PORT_ANALYTICS}
-    networks:
-      - default
-      - postgres
 
 
   watcher_async_tasks:
